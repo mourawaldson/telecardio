@@ -1,9 +1,11 @@
 ## Info
 Academic project in 6th period 2010 / Technologist Course in Analysis and Systems Development
 
-Projeto de Conclusão de Curso.
+Final Project.
 
 Developed in Java/Flex with SQL Server 2008.
+
+[More info](http://mourawaldson.com.br/agility/index.php?opcao=2020)
 
 ## Credits
 [Hector Viana](mailto:hectorvianab@gmail.com)
