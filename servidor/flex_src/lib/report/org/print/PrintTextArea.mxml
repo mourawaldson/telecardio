@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+/*
+ * ============================================================================
+ * GNU Lesser General Public License
+ * ============================================================================
+ *
+ * FlexReport - Free Flex report-generating library.
+ * Copyright (C) 2008 Frederico Garcia
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307, USA.
+ * 
+ * Frederico Garcia
+ * fmotagarcia@kemelyon.com
+ * http://www.kemelyon.com
+ */
+ 
+/*
+ * Contributors:
+ * 
+ */
+ -->
+<mx:TextArea xmlns:mx="http://www.adobe.com/2006/mxml" xmlns="*" creationComplete="initComponent()" borderStyle="solid" borderColor="#FFFFFF">
+
+  <mx:Script>
+  	<![CDATA[
+  		import mx.core.EdgeMetrics;
+  		import mx.core.ScrollPolicy;
+  		
+		private function initComponent():void 
+		{
+			horizontalScrollPolicy = ScrollPolicy.OFF;
+			verticalScrollPolicy = ScrollPolicy.OFF;
+
+			selectable = false;
+			percentHeight = 100;			
+		}
+		
+		public var count:Number=0;
+		private var currentLine:uint = 0;
+		
+		public function get validNextPage():Boolean
+		{		
+			return (currentLine<numLines) ? true : false;
+		}   
+					
+		public function nextPage():void
+		{	
+			if (currentLine < maxVerticalScrollPosition) {
+				verticalScrollPosition = currentLine;
+			}
+			else {			
+				var nextHeight:Number = 0;
+				
+				for (var i:int = currentLine - 1; i < numLines; i++) {
+					nextHeight += getLineMetrics(i).height;
+				}
+									
+				height = nextHeight;
+				validateNow();
+				
+				verticalScrollPosition = maxVerticalScrollPosition;
+				
+				currentLine = verticalScrollPosition + numLines - maxVerticalScrollPosition;
+			}
+		}
+		
+		override public function set htmlText(value:String):void
+		{
+			super.htmlText = value;
+		}
+		
+		override public function get htmlText():String
+		{
+			return super.htmlText;
+		}
+		
+		public function reset():void
+		{	
+			percentHeight = 100;	
+			verticalScrollPosition = 0;
+			
+			invalidateProperties();
+			validateNow();
+		}
+		
+		private function get numLines():Number
+		{
+			invalidateProperties();
+			validateNow();
+			
+			return textField.numLines;
+		}
+		
+		[PercentProxy("percentHeight")]
+		override public function set height(value:Number):void
+		{
+			if(super.height==value) {
+				currentLine=verticalScrollPosition+numLines-maxVerticalScrollPosition;
+				
+				if(currentLine==numLines) {
+					var _textHeight:Number = 0;
+					
+					for(var i:int=0;i<numLines;i++) {
+						_textHeight += textField.getLineMetrics(i).height;
+					}
+					super.height = (_textHeight<value)?_textHeight:value;
+				} else {
+					super.height = value;
+				}
+			}
+			else {
+				super.height = value;
+			}
+		}
+		
+		override public function get height():Number
+		{
+			return super.height
+		}		
+	]]>	    
+  </mx:Script>
+</mx:TextArea> 

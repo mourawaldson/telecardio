@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns="lib.report.org.print.*"
+		xmlns:mx="http://www.adobe.com/2006/mxml"
+		width="595"
+		height="842"
+		xmlns:report="*"
+		xmlns:reports="md_relatorio.*">
+	<!-- REPORT LAYOUT -->
+	<reports:Header id="header"
+					width="100%"
+					showInAllPages="true"/>
+
+	<Body width="100%"
+		  height="100%">
+		<ReportDataGrid id="grid"
+						sizeToPage="true"
+						wordWrap="true"
+						width="100%"
+						fontSize="9"/>
+	</Body>
+
+	<reports:Footer width="100%"
+					showInFirstPage="true"
+					showInMiddlePages="true"
+					showInLastPage="true"/>
+
+	<mx:Script>
+		<![CDATA[
+			public override function loadData():void
+			{
+			}
+		]]>
+	</mx:Script>
+</Report>

@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+				xmlns:validators="validators.*"
+				layout="absolute"
+				width="644"
+				height="468"
+				title="Tele Cardio - Laudo"
+				initialize="this.init();">
+
+	<validators:validacaoString id="valLaudo"
+								source="{this.rteLaudo}"
+								property="text"
+								minLength="10"/>
+
+	<mx:Style source="../lib/css/estilo.css"/>
+
+	<mx:Script>
+		<![CDATA[
+			import flash.utils.setInterval;
+			import flash.utils.setTimeout;
+			import lib.configuracao.*;
+			import md_relatorio.rLaudo;
+			import md_relatorio.VisualizacaoRelatorio;
+
+			import lib.classes.Profissional;
+			import lib.classes.Usuario;
+			import lib.classes.ProfissionalOrgao;
+			import lib.classes.Exame;
+			import lib.classes.Configuracao;
+
+			import lib.funcoes.Funcoes;
+
+			import mx.core.Application;
+			import mx.managers.PopUpManager;
+			import mx.events.CloseEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.controls.Alert;
+			import mx.validators.Validator;
+			import mx.containers.Box;
+			import mx.collections.ArrayCollection;
+
+			public var telaPai:visualizarSolicitacao;
+
+			public var idExam:int;
+
+			[Bindable]
+			public var exameAnterior:Exame=null;
+
+			[Bindable]
+			private var exam:Exame=new Exame();
+
+			[Bindable]
+			private var config:Configuracao=new Configuracao();
+
+			[Bindable]
+			private var medico:Usuario=null;
+
+			[Bindable]
+			private var medicos:ArrayCollection=new ArrayCollection();
+
+			[Bindable]
+			private var textoLaudo:String=new String();
+
+			[Bindable]
+			private var texto:String=new String();
+
+			[Bindable]
+			private var texto1:Array=new Array();
+
+			private function init():void
+			{
+				controladorConfiguracao.consultarAtiva();
+			}
+
+			private function carregarTela():void
+			{
+				var tempo:int=Funcoes.convertMinutesToMilliseconds(this.config.limiteExameLaudando);
+				setTimeout(cancelarSolicitacaoTempoLimiteEsgotado, tempo);
+				this.exam.chave=this.idExam;
+				controlador.consultarPorId(this.exam.chave);
+				controlador.consultarMedicosMenosParametro(Sessao.userSessao.chave);
+			}
+
+			private function cancelarSolicitacaoTempoLimiteEsgotado():void
+			{
+				Alert.show("O tempo limite para laudar essa solicitação esgotou, ela será cancelada!", MensagensNegocio.msgTipoAlerta);
+				var event:CloseEvent=new CloseEvent("", false, false, Alert.YES);
+				this.cancelarSolicitacao(event);
+			}
+
+			private function confirmacaoEncaminhaMedico():void
+			{
+				Alert.yesLabel=NomesCampos.sim;
+				Alert.noLabel=NomesCampos.nao;
+				Alert.show(MensagensNegocio.exameConfirmarEncaminhamento, MensagensNegocio.msgTipoConfirmacao, Alert.YES | Alert.NO, this, abrirEnvioMedico);
+			}
+
+			private function abrirEnvioMedico(event:CloseEvent):void
+			{
+				if (event.detail == Alert.YES)
+				{
+					if (this.medicos.length <= 0)
+					{
+						Alert.show(MensagensNegocio.exameMedicosIndisponiveis, MensagensNegocio.msgTipoAlerta);
+						this.cbbMedico.selectedIndex=-1;
+						this.cbbMedico.prompt="Selecione";
+					}
+					else
+					{
+						this.lblMedico.visible=true;
+						this.cbbMedico.visible=true;
+					}
+				}
+
+				if (event.detail == Alert.NO)
+				{
+					this.lblMedico.visible=false;
+					this.cbbMedico.visible=false;
+					this.cbbMedico.selectedIndex=-1;
+					this.cbbMedico.prompt="Selecione";
+				}
+			}
+
+			private function tiparLaudo(event:Event):void
+			{
+				if (this.rbConclusivo.selected)
+				{
+					this.rteLaudo.title=CamposBanco.exameParecer;
+					this.lblMedico.visible=false;
+					this.cbbMedico.visible=false;
+					this.exam.estado=Exame.LAUDADO;
+				}
+				else if (this.rbInconclusivo.selected)
+				{
+					confirmacaoEncaminhaMedico();
+					this.rteLaudo.title=CamposBanco.exameJustificativa;
+					this.exam.estado=Exame.NAO_LAUDADO;
+				}
+			}
+
+			//Função que abre um popup para confirmação de laudar a solicitação. 
+			private function confirmacaoLaudar():void
+			{
+				Alert.yesLabel=NomesCampos.sim;
+				Alert.noLabel=NomesCampos.nao;
+				Alert.show(MensagensNegocio.exameConfirmarLaudar, MensagensNegocio.msgTipoConfirmacao, Alert.YES | Alert.NO, this, laudarSolicitacao);
+			}
+
+			//Função que abre um popup para confirmação de cancelamento da solicitação. 
+			private function confirmacaoCancelar():void
+			{
+				Alert.yesLabel=NomesCampos.sim;
+				Alert.noLabel=NomesCampos.nao;
+				Alert.show(MensagensNegocio.exameConfirmarCancelar, MensagensNegocio.msgTipoConfirmacao, Alert.YES | Alert.NO, this, cancelarSolicitacao);
+			}
+
+			//Função que recupera a resposta do popup de confirmação e salva ou não o laudo.
+			private function laudarSolicitacao(event:CloseEvent):void
+			{
+				if (event.detail == Alert.YES)
+				{
+					this.exam.profissional=new Profissional();
+					this.exam.profissional.chave=Sessao.userSessao.profissional.chave;
+					this.exam.parecerJustificativa=this.rteLaudo.text;
+					this.exam.medicoDesignadoCrm=(this.rbInconclusivo.selected && this.cbbMedico.selectedIndex <= 0) ? (this.cbbMedico.selectedItem.profissionaisOrgaos[0] as ProfissionalOrgao).habilitacao : 0;
+
+					controlador.laudar(this.exam);
+				}
+			}
+
+			private function cancelarSolicitacao(event:CloseEvent):void
+			{
+				if (event.detail == Alert.YES)
+					controlador.cancelar(this.exameAnterior);
+			}
+
+			private function laudar():void
+			{
+				var erros:Array=Validator.validateAll(new Array(this.valLaudo));
+				var errosEspecificos:Array=Validator.validateAll(new Array());
+
+				(erros.length == 0) ? confirmacaoLaudar() : verificarCampos();
+			}
+
+			private function verificarCampos():void
+			{
+				var tamRteLaudo=this.rteLaudo.text.length;
+				var tamMinRteLaudo=this.valLaudo.minLength;
+
+				var camposObrigatorios:String=new String();
+				if ((Funcoes.isNullOrEmpty(this.rteLaudo.text) || tamRteLaudo < tamMinRteLaudo) && this.rbConclusivo.selected)
+					camposObrigatorios+=CamposBanco.exameParecer + " \n";
+
+				if ((Funcoes.isNullOrEmpty(this.rteLaudo.text) || tamRteLaudo < tamMinRteLaudo) && this.rbInconclusivo.selected)
+					camposObrigatorios+=CamposBanco.exameJustificativa + " \n";
+
+				if (this.rbInconclusivo.selected && this.cbbMedico.selectedIndex <= 0)
+					camposObrigatorios+=CamposBanco.exameMedico + " \n";
+
+				if (camposObrigatorios.length != 0)
+					Alert.show(MensagensNegocio.campoObrigatorio + "\n" + camposObrigatorios, NomesCampos.telaEmissaoLaudo);
+			}
+
+			private function onResultCancelar(event:ResultEvent):void
+			{
+				if (event.result as Boolean)
+				{
+					Alert.show(MensagensNegocio.exameCancelarSucesso, MensagensNegocio.msgTipoConfirmacao);
+					Funcoes.fecharPopUp(this);
+					Funcoes.fecharPopUp(telaPai);
+					telaPai.telaPai.preencherDataGrid();
+				}
+				else
+					Alert.show(MensagensNegocio.exameCancelarInsucesso, MensagensNegocio.msgTipoConfirmacao);
+			}
+
+			private function onResultLaudar(event:ResultEvent):void
+			{
+				var validador:Validador=event.result as Validador;
+				if (validador.msgRetorno.length <= 0)
+				{
+					Alert.show(MensagensNegocio.exameLaudarSucesso, MensagensNegocio.msgTipoConfirmacao);
+					Funcoes.fecharPopUp(this);
+					Funcoes.fecharPopUp(telaPai);
+					telaPai.telaPai.preencherDataGrid();
+				}
+				else
+				{
+					var msgsRetorno:String=new String();
+					for (var i:int=0; i < validador.msgRetorno.length; i++)
+						msgsRetorno+=validador.msgRetorno[i].toString() + "\n"
+
+					Alert.show(msgsRetorno, MensagensNegocio.msgTipoErro);
+				}
+			}
+
+			private function onResultConsultarMedicosMenosParametro(event:ResultEvent):void
+			{
+				this.medicos=event.result as ArrayCollection;
+				for (var i:int=0; i < this.medicos.length; i++)
+					(medicos[i] as Profissional).nomeProfissional=(medicos[i] as Profissional).usuario.nome;
+
+				this.cbbMedico.dataProvider=medicos;
+			}
+
+			private function onResultConsultarAtiva(event:ResultEvent):void
+			{
+				this.config=event.result as Configuracao;
+				if (this.config != null)
+					this.carregarTela();
+			}
+
+			// Resultado da consulta do exame solicitado.
+			private function onResultConsultarPorId(event:ResultEvent):void
+			{
+				this.exam=new Exame();
+				this.exam=event.result as Exame;
+				if (this.exam != null)
+					this.preencherCampos();
+			}
+
+			// Preenche os campos de acordo com os valores retornados da consulta.
+			private function preencherCampos():void
+			{
+				this.exam.estado=Exame.LAUDADO;
+				var parecerJustificativa:String=this.exam.parecerJustificativa;
+				if (parecerJustificativa != null)
+					this.rteLaudo.text=parecerJustificativa;
+			}
+		]]>
+	</mx:Script>
+
+	<mx:RemoteObject id="controlador"
+					 showBusyCursor="true"
+					 destination="controladorExame">
+		<mx:method name="laudar"
+				   result="this.onResultLaudar(event);"
+				   fault="Funcoes.onFault(event);"/>
+		<mx:method name="cancelar"
+				   result="this.onResultCancelar(event);"
+				   fault="Funcoes.onFault(event);"/>
+		<mx:method name="consultarMedicosMenosParametro"
+				   result="this.onResultConsultarMedicosMenosParametro(event);"
+				   fault="Funcoes.onFault(event);"/>
+		<mx:method name="consultarPorId"
+				   result="this.onResultConsultarPorId(event);"
+				   fault="Funcoes.onFault(event);"/>
+	</mx:RemoteObject>
+
+	<mx:RemoteObject id="controladorConfiguracao"
+					 showBusyCursor="true"
+					 destination="controladorConfiguracao">
+		<mx:method name="consultarAtiva"
+				   result="this.onResultConsultarAtiva(event);"
+				   fault="Funcoes.onFault(event);"/>
+	</mx:RemoteObject>
+
+	<mx:Label x="10"
+			  y="10"
+			  text="Tipo de Laudo:"/>
+	<mx:RadioButtonGroup id="rbgTipoLaudo"/>
+	<mx:RadioButton x="93"
+					y="10"
+					id="rbConclusivo"
+					label="Conclusivo"
+					groupName="rbgTipoLaudo"
+					selected="true"
+					click="this.tiparLaudo(event);"/>
+	<mx:RadioButton x="177"
+					y="10"
+					id="rbInconclusivo"
+					label="Inconclusivo"
+					groupName="rbgTipoLaudo"
+					click="this.tiparLaudo(event);"/>
+	<mx:RichTextEditor x="0"
+					   y="42"
+					   title="Laudo"
+					   width="630"
+					   id="rteLaudo"
+					   borderStyle="none"
+					   tabEnabled="false"
+					   showControlBar="false">
+	</mx:RichTextEditor>
+	<mx:Label x="10"
+			  y="360"
+			  text="Selecione o médico:"
+			  visible="false"
+			  id="lblMedico"/>
+	<mx:ComboBox x="119"
+				 y="360"
+				 id="cbbMedico"
+				 prompt="Selecione"
+				 dataProvider="{this.medicos}"
+				 labelField="nomeProfissional"
+				 visible="false">
+	</mx:ComboBox>
+
+	<mx:ControlBar height="47"
+				   y="417"
+				   horizontalAlign="right">
+		<mx:Button label="finalizar"
+				   id="btnFinalizar"
+				   click="this.laudar();"/>
+		<mx:Button label="fechar"
+				   id="btnFechar"
+				   click="this.confirmacaoCancelar();"/>
+	</mx:ControlBar>
+
+</mx:TitleWindow>

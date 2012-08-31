@@ -1,0 +1,141 @@
+/* CSS file */
+RichTextEditor
+{
+	borderColor: #C6E394;
+	borderAlpha: 1.0;
+	borderStyle: none;
+}
+ComboBox
+{
+	selectionColor: #2D7016;
+	rollOverColor: #74F70A;
+}
+HRule
+{
+	strokeColor: #969792;
+}
+DataGrid
+{
+	borderColor: #91938E;
+	alternatingItemColors: #EFF5E9, #D5D9C6;
+	backgroundDisabledColor: #E86D6D;
+	rollOverColor: #ADFB06;
+	selectionColor: #6AB409;
+	headerColors: #EFF0ED, #B3B5AE;
+	textAlign: left;
+	color: #000202;
+	fontFamily: Arial;
+}
+Application
+{
+	backgroundGradientAlphas: 1.0, 1.0;
+	backgroundGradientColors: #EFEFEF, #D6D7D6;
+	backgroundImage: Embed(source="../images/bg.png");
+}
+ApplicationControlBar
+{
+	fillAlphas: 1.0, 1.0;
+	fillColors: #F6F7F3, #D6D7D2;
+	backgroundDisabledColor: #EEF1F2;
+	cornerRadius: 0;
+	paddingTop: 0;
+	paddingBottom: 0;
+
+}
+
+Accordion
+{
+	borderStyle: solid;
+	backgroundColor: #FFFFFF;
+	headerStyleName: accordionHeader;
+}
+Button
+{
+	borderColor: #B5B7B3;
+	themeColor: #E3E5DD;
+	cornerRadius: 7;
+	fillAlphas: 1.0, 1.0;
+	fillColors: #F5F7F2, #B6B8B3, #EAF4CB, #D8F28A;
+	fontFamily: Arial;
+	color: #030303;
+	textRollOverColor: #585958;
+	textSelectedColor: #A2A49E;
+	disabledColor: #B5B8B5;
+}
+
+MenuBar
+{
+	fillAlphas: 1.0, 1.0, 1.0, 1.0;
+	fillColors: #EDF0EB, #C8CFC4, #D6D7CF, #A8A9A5;
+	border-style:solid 1px;
+	fontFamily: Arial;
+	fontSize: 11;
+	disabledColor: #E91414;
+	rollOverColor: #C6E394;
+	selectionColor: #8CB65A;
+	borderColor: #E9EBE1;
+	color: #050505;
+	fontWeight: normal;
+	themeColor: #ADD339;
+}
+
+TitleWindow
+{
+	cornerRadius: 1;
+	borderThicknessLeft: 7;
+	roundedBottomCorners: false;
+	borderColor: #EAEBE5;
+	borderAlpha: 1.0;
+	controlBarStyleName: titleWindowControlBar;
+	borderThicknessRight: 7;
+	titleStyleName: titleWindowTitle;
+	backgroundColor: #FFFFFF;
+}
+
+TextInput
+{
+	borderStyle: solid;
+	borderColor: #989A96;
+	borderThickness: 1;
+	cornerRadius: 4;
+	fontFamily: Arial;
+	color: #151615;
+	fontSize: 11;
+	textAlign: left;
+}
+Label
+{
+	textAlign: left;
+	font-family:arial;
+	font-size:11;
+}
+FormItemLabel
+{
+	textAlign: left;
+	font-family:arial;
+	font-size:11;
+}
+Form
+{
+	indicatorGap: 12;
+}
+.botoesInabilitados
+{
+	background-color: #f1ebeb;
+	cornerRadius: 7;
+}
+.accordionHeader
+{
+	fillAlphas: 1.0, 1.0;
+	fillColors: #F6F7F3, #D6D7D2;
+	borderColor: #D3D3D3;
+	color: #030303;
+	themeColor: #E2F99D;
+}
+.titleWindowTitle
+{
+	fontFamily: Verdana;
+	fontSize: 11;
+	fontWeight: normal;
+}
+/* CSS file */

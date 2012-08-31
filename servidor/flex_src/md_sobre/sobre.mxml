@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+				layout="absolute"
+				width="400"
+				height="300"
+				title="Tele Cardio - Sobre o Sistema"
+				showCloseButton="false">
+	<mx:Script>
+		<![CDATA[
+			import lib.funcoes.Funcoes;
+		]]>
+	</mx:Script>
+	<mx:Label x="10"
+			  y="10"
+			  text="Tele Cardio"
+			  fontSize="19"
+			  fontFamily="Verdana"
+			  color="#28960A"
+			  fontWeight="bold"/>
+	<mx:Label x="10"
+			  y="61"
+			  text="Versão: Beta 1.0.0.1"/>
+	<mx:Label x="10"
+			  y="117"
+			  text="Desenvolvido por:"
+			  fontWeight="bold"/>
+	<mx:Label x="10"
+			  y="145"
+			  text="Hector Viana"/>
+	<mx:Label x="10"
+			  y="173"
+			  text="Vitor Lins"/>
+	<mx:Label x="10"
+			  y="201"
+			  text="Waldson Moura"/>
+	<mx:Button x="319"
+			   y="230"
+			   label="fechar"
+			   id="btnFechar"
+			   click="Funcoes.fecharPopUp(this)"/>
+
+</mx:TitleWindow>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml"
+		   creationComplete="initApplication()"
+		   xmlns:ns1="lib.report.org.print.*">
+
+	<mx:Script>
+		<![CDATA[
+			import lib.report.org.doc.PaperFormat;
+			import lib.report.org.print.Report;
+			import lib.report.templates.dataproviders.DemoReportDP;
+			import lib.report.org.doc.Document;
+
+			[Bindable]
+			public var doc:Document=null;
+			[Bindable]
+			public var datasourceText:ReportDPText;
+			[Bindable]
+			public var title:String=null;
+
+			/** Função que receberá o Relatório a ser impresso **/
+			public function execute(report:Report=null):void
+			{
+				/** Criando a instancia do documento **/
+				/** Pode-se passar o formato do papel do relatório **/
+				doc=new Document(report, datasourceText, PaperFormat.A4);
+
+				/** Script php de geração do PDF **/
+				doc.pdfScript="http://www.flexpernambuco.com.br/solicite/libs/create.php";
+				doc.pdfEnabled=true;
+				doc.title=title;
+
+				printPreview.doc=doc;
+			}
+
+			private function initApplication():void
+			{
+
+			}
+		]]>
+	</mx:Script>
+
+	<ns1:Preview id="printPreview"
+				 left="5"
+				 right="5"
+				 top="5"
+				 bottom="5">
+	</ns1:Preview>
+
+</mx:Canvas>

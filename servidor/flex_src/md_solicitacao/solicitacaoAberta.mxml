@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+				xmlns:nimer="lib.configuracao.*"
+				layout="absolute"
+				width="680"
+				height="270"
+				title="Tele Cardio - Solicitações Abertas"
+				initialize="this.init();">
+
+	<mx:Style source="../lib/css/estilo.css"/>
+
+	<mx:Script>
+		<![CDATA[
+			import flash.utils.setTimeout;
+			import md_usuario.usuario;
+			import lib.classes.ProfissionalOrgao;
+			import lib.configuracao.*;
+			import lib.funcoes.Funcoes;
+
+			import lib.classes.Exame;
+
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.rpc.events.ResultEvent;
+			import mx.events.CloseEvent;
+
+			import flash.utils.Timer;
+			import flash.events.TimerEvent;
+
+			private var dateTime:Timer;
+
+			[Bindable]
+			private var dados:ArrayCollection;
+
+			private var exam:Exame=null;
+
+			private var crm:int=0;
+
+			private function init():void
+			{
+				this.preencherDataGrid();
+				this.startTimer();
+			}
+
+			private function startTimer():void
+			{
+				dateTime=new Timer(10000);
+				dateTime.addEventListener(TimerEvent.TIMER, this.preencherDataGrid);
+				dateTime.start();
+			}
+
+			private function stopTimer():void
+			{
+				dateTime.stop();
+			}
+
+			public function preencherDataGrid(isPesquisa:Boolean=false):void
+			{
+				if (Sessao.userSessao.profissional != null)
+					crm=(Sessao.userSessao.profissional.profissionaisOrgaos[0] as ProfissionalOrgao).habilitacao;
+
+				if (isPesquisa)
+				{
+					var valor:String=this.txtPesquisarSolicitacao.text;
+
+					if (this.rbtNome.selected)
+						controlador.consultarTodosAbertos(CamposBanco.pessoaNome, valor, crm);
+
+
+					if (this.rbtCpf.selected)
+						controlador.consultarTodosAbertos(CamposBanco.pessoaCpf, valor, crm);
+				}
+				else
+					controlador.consultarTodosAbertos(null, null, crm);
+			}
+
+			private function onResultConsultarTodosAbertos(event:ResultEvent):void
+			{
+				this.dados=event.result as ArrayCollection;
+
+				if (this.dados != null)
+				{
+					for (var i:int=0; i < this.dados.length; i++)
+					{
+						(this.dados[i] as Exame).nomePaciente=(this.dados[i] as Exame).paciente.nome;
+						(this.dados[i] as Exame).nomeMunicipio=(this.dados[i] as Exame).paciente.endereco.municipio;
+					}
+
+					this.dtgSolicitacao.dataProvider=dados;
+					this.dtgSolicitacao.rowColorFunction=selectTypeColor;
+				}
+			}
+
+			public function visualizar():void
+			{
+				//Pega o exame selecionado no datagrid.
+				this.exam=Funcoes.retornarObjetoSelecionado(this.dtgSolicitacao) as Exame;
+
+				var popUpVisualizarSolicitacao:visualizarSolicitacao=new visualizarSolicitacao();
+
+				//atribui o id da configuração para tela.
+				popUpVisualizarSolicitacao.idExam=this.exam.chave;
+				popUpVisualizarSolicitacao.telaPai=solicitacaoAberta(this);
+
+				Funcoes.instanciarTela(popUpVisualizarSolicitacao, this);
+			}
+
+			//Função que abre um popup para confirmação de exclusão da solicitação. 
+			private function confirmacaoExcluir():void
+			{
+				Alert.yesLabel=NomesCampos.sim;
+				Alert.noLabel=NomesCampos.nao;
+				Alert.show(MensagensNegocio.exameConfirmarExclusao, MensagensNegocio.msgTipoConfirmacao, Alert.YES | Alert.NO, this, excluirSolicitacao);
+			}
+
+			//Função que recupera a resposta do popup de confirmação e exclui ou não o paciente.
+			private function excluirSolicitacao(event:CloseEvent):void
+			{
+				if (event.detail == Alert.YES)
+				{
+					this.exam=Funcoes.retornarObjetoSelecionado(this.dtgSolicitacao) as Exame;
+					controlador.excluir(this.exam);
+				}
+			}
+
+			public function excluir():void
+			{
+				confirmacaoExcluir();
+			}
+
+			private function onResultExcluir(event:ResultEvent):void
+			{
+				if (event.result as Boolean)
+				{
+					Alert.show(MensagensNegocio.exameExcluidoSucesso, MensagensNegocio.msgTipoConfirmacao);
+					this.preencherDataGrid();
+				}
+				else
+					Alert.show(MensagensNegocio.exameExcluidoInsucesso, MensagensNegocio.msgTipoConfirmacao);
+			}
+
+			private function selectTypeColor(item:Object, color:uint):uint
+			{
+				if (item.passouLimiteAberto && item.medicoDesignadoCrm == 0)
+					return 0xCD5C5C;
+				else if (item.medicoDesignadoCrm != 0)
+					return 0x666666;
+
+				return color;
+			}
+		]]>
+	</mx:Script>
+
+	<mx:RemoteObject id="controlador"
+					 showBusyCursor="true"
+					 destination="controladorExame">
+		<mx:method name="consultarTodosAbertos"
+				   result="this.onResultConsultarTodosAbertos(event);"
+				   fault="Funcoes.onFault(event);"/>
+		<mx:method name="excluir"
+				   result="this.onResultExcluir(event);"
+				   fault="Funcoes.onFault(event);"/>
+	</mx:RemoteObject>
+
+	<nimer:CustomRowColorDataGrid id="dtgSolicitacao"
+								  resizableColumns="true"
+								  sortableColumns="true"
+								  width="640"
+								  draggableColumns="false"
+								  x="10"
+								  y="10"
+								  scroll="true"
+								  height="145"
+								  maxHeight="145">
+		<nimer:columns>
+			<mx:DataGridColumn headerText="Paciente"
+							   dataField="nomePaciente"
+							   width="250"/>
+			<mx:DataGridColumn headerText="Município"
+							   dataField="nomeMunicipio"
+							   width="120"/>
+			<mx:DataGridColumn headerText="Data / Hora"
+							   dataField="dataSolicitacao"
+							   width="110"/>
+			<mx:DataGridColumn headerText="Opções"
+							   dataField="Opcoes"
+							   width="60">
+				<mx:itemRenderer>
+					<mx:Component>
+						<mx:HBox horizontalAlign="center"
+								 width="100%"
+								 borderStyle="none">
+							<mx:Script>
+								<![CDATA[
+									import lib.classes.Usuario;
+									[Embed(source='../lib/images/visualizar.png')]
+									public static var icVisualizar:Class;
+
+									[Embed(source='../lib/images/excluir.png')]
+									public static var icExcluir:Class;
+								]]>
+							</mx:Script>
+							<mx:Image source="{icVisualizar}"
+									  click="outerDocument.visualizar()"
+									  toolTip="Click para visualizar."
+									  useHandCursor="true"/>
+							<mx:Image source="{icExcluir}"
+									  click="outerDocument.excluir()"
+									  toolTip="Click para excluir."
+									  useHandCursor="true"/>
+						</mx:HBox>
+					</mx:Component>
+				</mx:itemRenderer>
+			</mx:DataGridColumn>
+		</nimer:columns>
+	</nimer:CustomRowColorDataGrid>
+
+	<mx:Label x="10"
+			  y="162"
+			  text="Pesquisar:"/>
+	<mx:TextInput x="78"
+				  y="160"
+				  id="txtPesquisarSolicitacao"
+				  width="194"
+				  restrict=""
+				  enter="this.preencherDataGrid(true);"
+				  change="this.preencherDataGrid(true);"
+				  maxChars="20"/>
+	<mx:RadioButton x="290"
+					y="160"
+					label="Paciente"
+					id="rbtNome"
+					groupName="rbtPesquisarSolicitacao"
+					selected="true"/>
+	<mx:RadioButton x="367"
+					y="160"
+					label="CPF"
+					id="rbtCpf"
+					groupName="rbtPesquisarSolicitacao"/>
+
+	<mx:ControlBar height="42"
+				   horizontalAlign="right">
+		<mx:HBox horizontalAlign="left"
+				 width="500">
+			<mx:Canvas backgroundColor="#CD5C5C"
+					   width="18"
+					   height="18"
+					   x="10"
+					   y="190"/>
+			<mx:Label text="Solicitações vencidas"/>
+			<mx:Canvas backgroundColor="#666666"
+					   width="18"
+					   height="18"
+					   x="10"
+					   y="190"/>
+			<mx:Label text="Solicitações encaminhadas para você"/>
+		</mx:HBox>
+		<mx:Button label="atualizar"
+				   width="68"
+				   id="btnAtualizar"
+				   click="this.preencherDataGrid();"/>
+		<mx:VRule height="20"/>
+		<mx:Button label="fechar"
+				   id="btnFechar"
+				   click="this.stopTimer(),Funcoes.fecharPopUp(this);"/>
+	</mx:ControlBar>
+
+</mx:TitleWindow>

@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+				layout="absolute"
+				width="674"
+				height="270"
+				title="Tele Cardio - Solicitações Concluídas"
+				initialize="preencherDataGrid()">
+
+	<mx:Style source="../lib/css/estilo.css"/>
+
+	<mx:Script>
+		<![CDATA[
+			import mx.utils.UIDUtil;
+			import mx.formatters.SwitchSymbolFormatter;
+			import lib.configuracao.MensagensNegocio;
+			import lib.configuracao.NomesCampos;
+			import lib.configuracao.CamposBanco;
+			import lib.funcoes.Funcoes;
+			import lib.funcoes.gerarPDF;
+
+			import lib.classes.Exame;
+
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.rpc.events.ResultEvent;
+			import mx.events.CloseEvent;
+
+			[Bindable]
+			private var dados:ArrayCollection;
+
+			private function preencherDataGrid(isPesquisa:Boolean=false):void
+			{
+				if (isPesquisa)
+				{
+					var valor:String=this.txtPesquisarSolicitacao.text;
+
+					/*if (this.rbtDataConclusao.selected)
+					 controlador.consultarTodosConcluidos(CamposBanco.exameDataConclusao, valor);*/
+
+					if (this.rbtNome.selected)
+						controlador.consultarTodosConcluidos(CamposBanco.pessoaNome, valor);
+
+
+					if (this.rbtCpf.selected)
+						controlador.consultarTodosConcluidos(CamposBanco.pessoaCpf, valor);
+				}
+				else
+					controlador.consultarTodosConcluidos(null, null);
+			}
+
+			private function onResultConsultarTodosConcluidos(event:ResultEvent):void
+			{
+				this.dados=event.result as ArrayCollection;
+
+				if (this.dados != null)
+				{
+					for (var i:int=0; i < this.dados.length; i++)
+					{
+						var estado:int=(this.dados[i] as Exame).estado;
+						(this.dados[i] as Exame).nomePaciente=(this.dados[i] as Exame).paciente.nome;
+						(this.dados[i] as Exame).nomeMunicipio=(this.dados[i] as Exame).paciente.endereco.municipio;
+						if (estado == Exame.LAUDADO)
+							(this.dados[i] as Exame).situacao=NomesCampos.laudado;
+						else if (estado == Exame.NAO_LAUDADO)
+							(this.dados[i] as Exame).situacao=NomesCampos.inconclusivo;
+					}
+
+					this.dtgSolicitacao.dataProvider=dados;
+				}
+			}
+
+			//Funcionalidade que abrirá o PDF da solicitação selecionada.
+			public function imprimirPdf(e:MouseEvent):void
+			{
+				var exame:Exame=Funcoes.retornarObjetoSelecionado(this.dtgSolicitacao) as Exame;
+				var validador:String=UIDUtil.createUID();
+
+				gerarPDF.geraPDF(e, exame, validador);
+			}
+		]]>
+	</mx:Script>
+
+	<mx:RemoteObject id="controlador"
+					 showBusyCursor="true"
+					 destination="controladorExame">
+		<mx:method name="consultarTodosConcluidos"
+				   result="this.onResultConsultarTodosConcluidos(event);"
+				   fault="Funcoes.onFault(event);"/>
+	</mx:RemoteObject>
+
+	<mx:DataGrid id="dtgSolicitacao"
+				 resizableColumns="true"
+				 sortableColumns="true"
+				 width="640"
+				 draggableColumns="false"
+				 x="10"
+				 y="10"
+				 scroll="true"
+				 height="145"
+				 maxHeight="145">
+		<mx:columns>
+			<mx:DataGridColumn headerText="Paciente"
+							   dataField="nomePaciente"
+							   width="250"/>
+			<mx:DataGridColumn headerText="Município"
+							   dataField="nomeMunicipio"
+							   width="120"/>
+			<mx:DataGridColumn headerText="Situação"
+							   dataField="situacao"
+							   width="70"/>
+			<mx:DataGridColumn headerText="Data / Hora"
+							   dataField="dataConclusao"
+							   width="110"/>
+			<mx:DataGridColumn headerText="Imprimir"
+							   dataField="Imprimir"
+							   width="70">
+				<mx:itemRenderer>
+					<mx:Component>
+						<mx:HBox horizontalAlign="center"
+								 width="100%"
+								 borderStyle="none">
+							<mx:Script>
+								<![CDATA[
+									import lib.funcoes.gerarPDF;
+									import lib.classes.Usuario;
+
+									[Embed(source='../lib/images/pdf.png')]
+									public static var icImprimirPdf:Class;
+								]]>
+							</mx:Script>
+							<mx:Image source="{icImprimirPdf}"
+									  click="outerDocument.imprimirPdf(event)"
+									  toolTip="Click para imprimir o PDF."
+									  useHandCursor="true"/>
+						</mx:HBox>
+					</mx:Component>
+				</mx:itemRenderer>
+			</mx:DataGridColumn>
+		</mx:columns>
+	</mx:DataGrid>
+	<mx:Label x="10"
+			  y="162"
+			  text="Pesquisar:"/>
+	<mx:TextInput x="78"
+				  y="160"
+				  id="txtPesquisarSolicitacao"
+				  width="194"
+				  restrict=""
+				  enter="this.preencherDataGrid(true);"
+				  change="this.preencherDataGrid(true);"
+				  maxChars="20"/>
+	<mx:RadioButton x="290"
+					y="160"
+					label="Paciente"
+					id="rbtNome"
+					groupName="rbtPesquisarSolicitacao"
+					selected="true"/>
+	<mx:RadioButton x="367"
+					y="160"
+					label="CPF"
+					id="rbtCpf"
+					groupName="rbtPesquisarSolicitacao"/>
+	<!--<mx:RadioButton x="425"
+		 y="160"
+		 label="Data"
+		 id="rbtDataConclusao"
+		 groupName="rbtPesquisarSolicitacao"/>-->
+
+	<mx:ControlBar height="42"
+				   horizontalAlign="right">
+		<mx:Button label="atualizar"
+				   click="this.preencherDataGrid();"
+				   id="btnAtualizar"/>
+		<mx:VRule height="20"/>
+		<mx:Button label="fechar"
+				   id="btnFechar"
+				   click="Funcoes.fecharPopUp(this);"/>
+	</mx:ControlBar>
+
+</mx:TitleWindow>

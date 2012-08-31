@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+/*
+ * ============================================================================
+ * GNU Lesser General Public License
+ * ============================================================================
+ *
+ * FlexReport - Free Flex report-generating library.
+ * Copyright (C) 2008 Frederico Garcia
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307, USA.
+ * 
+ * Frederico Garcia
+ * fmotagarcia@kemelyon.com
+ * http://www.kemelyon.com
+ */
+ 
+/*
+ * Contributors:
+ * Michal Wojcik (Michal.Wojcik@sabre.com)
+ * Sylwester Bajek (Sylwester.Bajek@sabre.com)
+ */
+ -->
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" 
+	width="700" 
+	height="400" 
+	enabled="{(_doc != null) ? true : false}" 
+	xmlns:print="lib.report.org.print.*">
+
+	<mx:Script>
+		<![CDATA[
+			import mx.containers.Box;
+			import lib.report.org.doc.PaperFormat;
+			import lib.report.org.doc.PageFit;
+			import mx.events.ResizeEvent;
+			import mx.states.SetStyle;
+			import mx.core.IFlexDisplayObject;
+			import mx.core.Application;
+			import lib.report.org.events.PageRangeEvent;
+			import mx.managers.PopUpManager;
+			import mx.states.SetProperty;
+			import lib.report.org.doc.Document;
+			import mx.core.SpriteAsset;
+			import mx.core.UIComponent;
+			import mx.collections.ArrayCollection;
+
+			[Bindable]
+			[Embed(source="/lib/report/assets/page_white_stack.png")] 
+			private var pageStackIcon:Class;
+			
+            public function nextPage():void
+            {
+        		scroller.horizontalScrollPosition = 0;
+        		scroller.verticalScrollPosition = 0;            	
+            	_doc.nextPage();
+            }
+            
+            public function previousPage():void
+            {
+        		scroller.horizontalScrollPosition = 0;
+        		scroller.verticalScrollPosition = 0;
+            	_doc.previousPage();
+            }
+            
+            public function goto(page:int):int
+            {
+            	if (_doc) {
+            		scroller.horizontalScrollPosition = 0;
+            		scroller.verticalScrollPosition = 0;
+            		return _doc.goto(page);
+            	}
+            	return 0;
+            }
+            
+            public function print() : void
+            {
+            	var dialog : PrintRangeWindow = new PrintRangeWindow();
+            	dialog.currentPage = _doc.pageNumber;
+            	PopUpManager.addPopUp(dialog, this, true);
+            	PopUpManager.centerPopUp(dialog);
+            	dialog.owner = this;
+            }
+            
+            [Bindable]
+            private var pages:Array;
+            
+            [Bindable]
+            private var thumbnails:Array; 
+                       
+            [Bindable]
+            private var _doc:Document;
+            
+            public function set doc(doc:Document):void
+            {           	
+            	_doc = doc;
+            	if (_doc == null) {
+            		pages = null;
+            		thumbnails = null;
+            	} else {
+	            	pages = _doc.pages;
+	            	thumbnails = _doc.thumbs; 
+	            	page.paperFormat = doc.paperFormat;
+            	}
+            }
+            
+            public function set zoomEnabled(value : Boolean) : void
+            {
+            	toolbar.zoomSeparator.visible = value;
+            	toolbar.zoomToolbar.visible = value;
+            }
+            
+            public function set pdfExportEnabled(value : Boolean) : void
+            {
+            	toolbar.pdfExportButton.visible = value;
+            }
+            
+            private function pageNumberChangeHandler(event:Event):void
+            {
+            	toolbar.pageNumber = goto(toolbar.inputNumber);
+            }
+            
+            private function thumbSelectHandler(event:Event):void
+            {
+            	goto(thumbs.selectedIndex + 1);
+            }
+            
+            public function onCreationComplete() : void
+            {
+            	addEventListener(PageRangeEvent.PAGE_RANGE_EVENT, printRange);             	
+            }
+            
+			private function printRange(event : PageRangeEvent) : void
+			{
+				_doc.pageRangeManager = event.PageRange;
+				_doc.doPrint();	
+			}
+            			
+            private var zoomList:Array =  [.5,.75,1,1.5,2];
+            private var zoomPosition:int = 2;
+			
+			private function zoomIn():void {
+				var newPosition:int = 0;
+				var nPos:int = zoomList.length;
+				for(var i:int=0;i<nPos;i++)
+				{
+					if(zoomList[i]<=_zoomRatio) newPosition=i;
+				}
+				zoomPosition = newPosition;	
+							
+				if (zoomPosition < zoomList.length-1) {		
+            		zoomPosition++;
+           		      
+           		    onZoomRatio(null);   			
+            	}				
+			}
+			private function zoomOut():void {
+				var newPosition:int = 0;
+				var nPos:int = zoomList.length;
+				for(var i:int=0;i<nPos;i++)
+				{
+					if(zoomList[i]<_zoomRatio&&i+1<nPos) {
+						newPosition=i+1;
+					}
+					else if(zoomList[i]==_zoomRatio) {
+						newPosition=i;
+						break;
+					}
+				}
+				zoomPosition = newPosition;	
+								
+             	if (zoomPosition > 0) {
+            		zoomPosition--;		
+            				
+					onZoomRatio(null);
+             	}
+			}
+			
+			private function onZoomRatio(event:Event):void {
+				_fitMode = PageFit.NONE;
+				
+				var ratio:Number = Math.max(zoomList[zoomPosition], .5);
+				ratio = Math.min(ratio, 10);
+				zoomRatio = ratio;
+			}
+			
+			[Bindable] private var _zoomRatio:Number = 1;
+			private function set zoomRatio(ratio:Number):void {
+				page.scaleX = page.scaleY = _zoomRatio = ratio;
+				horizontalScrollPosition = verticalScrollPosition = 0;	
+							
+				updateControlBar();
+				page.render();
+			}
+			 
+			private function updateControlBar():void {
+
+			}
+			
+			private function onResize(event:ResizeEvent):void {
+				updatePageSize();
+			}
+			
+			private var _fitMode:uint = PageFit.ACTUAL_PAGE_SIZE;
+			private function updatePageSize():void {
+				if (_fitMode != PageFit.NONE && _doc !== null) {
+					var scale:Number = 1; // Actual Page Size
+					switch (_fitMode) {
+					case PageFit.PAGE:
+						scale = (preview.height - 40) / _doc.paperFormat.height;
+						break;
+					case PageFit.WIDTH:
+						scale = (preview.width - 40 - thumbs.width) / _doc.paperFormat.width;
+						break;
+					}
+					zoomRatio = scale;
+				}
+			}
+			
+			private function onFitMode():void {
+				fitMode = toolbar.fitMode;
+			}
+			
+			private function set fitMode(mode:uint):void {
+				_fitMode = mode;
+				updatePageSize();
+			}	
+									                                 
+		]]>
+	</mx:Script>
+		
+	<mx:HBox id="preview" resize="onResize(event)" left="0" right="0" top="30" bottom="0" horizontalScrollPolicy="off" verticalScrollPolicy="off" horizontalGap="0" backgroundColor="#676767">
+		<print:ThumbList id="thumbs" thumbs="{thumbnails}" visible="true" select="thumbSelectHandler(event)" selectedIndex="{_doc.pageNumber-1}" height="100%" toggleChange="updatePageSize()"/>
+		<mx:Canvas id="scroller" width="100%" height="100%" backgroundColor="#676767" verticalScrollBarStyleName="fseVerticalScrollBar">
+			<mx:VBox id="box" horizontalAlign="center" verticalAlign="middle" 
+				paddingTop="10" paddingBottom="10" paddingLeft="10" paddingRight="10"
+				left="0" top="0" right="20" bottom="0" verticalScrollBarStyleName="fseVerticalScrollBar">
+				<print:Page id="page" source="{_doc.currentPage}" width="{PaperFormat.A4.width}" height="{PaperFormat.A4.height}"/>
+			</mx:VBox>			
+		</mx:Canvas>
+	</mx:HBox>
+	
+	<print:PrintToolBar id="toolbar"
+		print="print()"
+		previous="previousPage()"
+		next="nextPage()"
+		zoomIn="zoomIn()"
+		zoomOut="zoomOut()"
+		fitModeChange="onFitMode()"
+		pageNumber="{_doc.pageNumber}"
+		pageCount="{_doc.pageCount}"
+		pageChanged="pageNumberChangeHandler(event)"
+		zoom="{Number(_zoomRatio.toFixed(2))}"
+		pdf="_doc.generatePDF()"
+		creationComplete="onCreationComplete()"
+		left="0" right="0" top="0"/>
+	<mx:Image y="10" source="/lib/report/assets/12_apagar.png" right="10" toolTip="Fechar" click="{PopUpManager.removePopUp((this.parent.parent as Box));}"/>
+</mx:Canvas>

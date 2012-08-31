@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+				layout="absolute"
+				width="674"
+				height="276"
+				title="Tele Cardio - Configuração"
+				initialize="this.preencherDataGrid();">
+
+	<mx:Style source="../lib/css/estilo.css"/>
+
+	<mx:Script>
+		<![CDATA[
+			import lib.funcoes.Funcoes;
+			import lib.configuracao.*;
+
+			import lib.classes.Configuracao;
+
+			import md_configuracao.*;
+
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.rpc.events.ResultEvent;
+
+			[Bindable]
+			private var dados:ArrayCollection;
+
+			private var config:Configuracao=null;
+
+			// Consulta todas as configurações incluídas.
+			public function preencherDataGrid():void
+			{
+				controlador.consultarTodas();
+			}
+
+			// Ativa a configuração selecionada no DataGrid.
+			public function ativar():void
+			{
+				this.config=Funcoes.retornarObjetoSelecionado(this.dtgConfiguracao) as Configuracao;
+				controlador.ativar(config);
+			}
+
+			// Chama a tela para editar a configuração selecionada no DataGrid.
+			public function editar():void
+			{
+				//Pega a configuração selecionada no datagrid.
+				this.config=Funcoes.retornarObjetoSelecionado(dtgConfiguracao) as Configuracao;
+
+				var popUpEditarConfiguracao:editarConfiguracao=new editarConfiguracao();
+
+				//atribui o id da configuração para tela.
+				popUpEditarConfiguracao.idConfig=config.chave;
+				popUpEditarConfiguracao.telaPai=configuracao(this);
+
+				Funcoes.instanciarTela(popUpEditarConfiguracao, this);
+			}
+
+			// Preenche o DataGrid com o resultado da consulta.
+			private function onResultConsultarTodas(event:ResultEvent):void
+			{
+				this.dados=event.result as ArrayCollection;
+
+				if (this.dados.length != 0)
+				{
+					for (var i:int=0; i < this.dados.length; i++)
+					{
+						var status:String=(this.dados[i] as Configuracao).status;
+						if (status == CamposBanco.statusAtivo)
+							(this.dados[i] as Configuracao).status=CamposBanco.statusConfigAtivaFinal;
+						else if (status == CamposBanco.statusInativo)
+							(this.dados[i] as Configuracao).status=CamposBanco.statusConfigInativaFinal;
+					}
+					dtgConfiguracao.dataProvider=this.dados;
+				}
+			}
+
+			// Confirma se a configuração foi ativa ou não, e atualizada o DataGrid.
+			private function onResultAtivar(event:ResultEvent):void
+			{
+				var validador:Validador=event.result as Validador;
+				if (validador.msgRetorno.length <= 0)
+				{
+					Alert.show(MensagensNegocio.configAtivada, MensagensNegocio.msgTipoConfirmacao);
+					this.preencherDataGrid();
+				}
+				else
+				{
+					var msgsRetorno:String=new String();
+					for (var i:int=0; i < validador.msgRetorno.length; i++)
+						msgsRetorno+=validador.msgRetorno[i].toString() + "\n"
+
+					Alert.show(msgsRetorno, MensagensNegocio.msgTipoErro);
+				}
+			}
+		]]>
+	</mx:Script>
+
+	<mx:RemoteObject id="controlador"
+					 showBusyCursor="true"
+					 destination="controladorConfiguracao">
+		<mx:method name="consultarTodas"
+				   result="this.onResultConsultarTodas(event)"
+				   fault="Funcoes.onFault(event)"/>
+		<mx:method name="ativar"
+				   result="this.onResultAtivar(event)"
+				   fault="Funcoes.onFault(event)"/>
+	</mx:RemoteObject>
+
+	<mx:DataGrid id="dtgConfiguracao"
+				 resizableColumns="true"
+				 sortableColumns="true"
+				 width="640"
+				 draggableColumns="false"
+				 x="10"
+				 y="10"
+				 scroll="true"
+				 height="182"
+				 maxHeight="145">
+		<mx:columns>
+			<mx:DataGridColumn headerText="Nome"
+							   dataField="nome"
+							   width="50"/>
+			<mx:DataGridColumn headerText="E-mail"
+							   dataField="emailChecagemEmail"
+							   width="150"/>
+			<mx:DataGridColumn headerText="Pasta dos Exames"
+							   dataField="pastaExames"
+							   width="100"/>
+			<mx:DataGridColumn headerText="Status"
+							   dataField="status"
+							   width="55"/>
+			<mx:DataGridColumn headerText="Opções"
+							   dataField="opcoes"
+							   width="65">
+				<mx:itemRenderer>
+					<mx:Component>
+						<mx:HBox horizontalAlign="center">
+							<mx:Script>
+								<![CDATA[
+									[Embed(source='../lib/images/editar.png')]
+									public static var icEdita:Class;
+
+									[Embed(source='../lib/images/ativo.png')]
+									public static var icAtivar:Class;
+								]]>
+							</mx:Script>
+							<mx:Image source="{icAtivar}"
+									  click="outerDocument.ativar()"
+									  toolTip="Click para ativar."
+									  useHandCursor="true"/>
+							<mx:Image source="{icEdita}"
+									  click="outerDocument.editar()"
+									  toolTip="Click para editar."
+									  useHandCursor="true"/>
+						</mx:HBox>
+					</mx:Component>
+				</mx:itemRenderer>
+			</mx:DataGridColumn>
+		</mx:columns>
+	</mx:DataGrid>
+
+	<mx:ControlBar height="42"
+				   horizontalAlign="right">
+		<mx:Button label="novo"
+				   id="btnNovo"
+				   width="60"
+				   click="Funcoes.telaNovaConfiguracao(this)"/>
+		<mx:Button label="fechar"
+				   id="btnFechar"
+				   click="Funcoes.fecharPopUp(this)"/>
+	</mx:ControlBar>
+
+</mx:TitleWindow>

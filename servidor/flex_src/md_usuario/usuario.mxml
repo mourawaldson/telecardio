@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+				layout="absolute"
+				width="674"
+				height="270"
+				title="Tele Cardio - Usuários"
+				initialize="preencherDatagrid(false)">
+
+	<mx:Style source="../lib/css/estilo.css"/>
+
+	<mx:Script>
+		<![CDATA[
+			import lib.configuracao.*;
+			import lib.funcoes.Funcoes;
+			import lib.classes.Usuario;
+
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+
+			import mx.rpc.events.ResultEvent;
+			import mx.events.CloseEvent;
+
+			private var user:Usuario;
+
+			[Bindable]
+			private var dados:ArrayCollection;
+
+			// Funcao chamada no inicio da pagina, que pode carregar a grid com todos os usuarios e pode ser chamada
+			// pelo evento enter do campo de pesquisar
+			public function preencherDatagrid(isPesquisa:Boolean):void
+			{
+				if (isPesquisa)
+				{
+					var valor:String=txtPesquisarUsuario.text;
+
+					if (rbtCpf.selected)
+						controlador.consultarUsuarios(CamposBanco.pessoaCpf, valor);
+
+					if (rbtNome.selected)
+						controlador.consultarUsuarios(CamposBanco.pessoaNome, valor);
+
+				}
+				else
+					controlador.consultarUsuarios(null, null);
+			}
+
+			/**
+			 * Função que chamará no controlador a funcionalidade que recuperará os dados do Usuário,
+			 * e preencherá um Objeto, passando o mesmo para a nova janela de Editar Usuário.
+			 */
+			public function editar():void
+			{
+				user=Funcoes.retornarObjetoSelecionado(this.dtgUsuario) as Usuario;
+				Sessao.userTemp=user;
+				Funcoes.telaEditarUsuario(this);
+			}
+
+			//Função que abre um popup para confirmação de exclusão do usuário. 
+			private function confirmacaoExcluiUsuario():void
+			{
+				Alert.yesLabel=NomesCampos.sim;
+				Alert.noLabel=NomesCampos.nao;
+				Alert.show(MensagensNegocio.UsuarioConfirmarExcluisao, MensagensNegocio.msgTipoConfirmacao, Alert.YES | Alert.NO, this, excluiUsuario);
+			}
+
+			//Função que recupera a resposta do popup de confirmação e exclui ou não o usuário.
+			private function excluiUsuario(event:CloseEvent):void
+			{
+				if (event.detail == Alert.YES)
+				{
+					user=Funcoes.retornarObjetoSelecionado(this.dtgUsuario) as Usuario;
+					var chave:int=user.chave;
+					if (chave == Sessao.userSessao.chave)
+						Alert.show(MensagensNegocio.usuarioExcluindoSe, MensagensNegocio.msgTipoErro);
+					else
+						controlador.excluirUsuario(user);
+				}
+			}
+
+			/**
+			 * Função que chamará no controlador a funcionalidade que excluirá o usuário cujo o ID
+			 * foi recuperado.
+			 * */
+			public function excluir():void
+			{
+				confirmacaoExcluiUsuario();
+			}
+
+			//Função para carregar o login.
+			private function carregarNovoUsuario():void
+			{
+				Funcoes.telaNovoUsuario(this);
+			}
+
+			private function onResultListar(event:ResultEvent):void
+			{
+				dados=event.result as ArrayCollection;
+
+				if (dados != null)
+					dtgUsuario.dataProvider=dados;
+			}
+
+			private function onResultexcluirUsuario(event:ResultEvent):void
+			{
+				if (event.result as Boolean)
+				{
+					Alert.show(MensagensNegocio.usuarioExcluidoSucesso, MensagensNegocio.msgTipoConfirmacao);
+					preencherDatagrid(false);
+				}
+				else
+					Alert.show(MensagensNegocio.usuarioExcluidoInsucesso, MensagensNegocio.msgTipoErro);
+			}
+		]]>
+	</mx:Script>
+
+	<mx:RemoteObject id="controlador"
+					 showBusyCursor="true"
+					 destination="controladorUsuario">
+		<mx:method name="consultarUsuarios"
+				   result="onResultListar(event)"
+				   fault="Funcoes.onFault(event)"/>
+		<mx:method name="excluirUsuario"
+				   result="onResultexcluirUsuario(event)"
+				   fault="Funcoes.onFault(event)"/>
+	</mx:RemoteObject>
+
+	<mx:DataGrid id="dtgUsuario"
+				 resizableColumns="true"
+				 sortableColumns="true"
+				 width="640"
+				 draggableColumns="false"
+				 x="10"
+				 y="10"
+				 scroll="true"
+				 height="145"
+				 maxHeight="145"
+				 editable="false"
+				 showHeaders="true">
+		<mx:columns>
+			<mx:DataGridColumn headerText="Código"
+							   dataField="chave"
+							   width="55"/>
+			<mx:DataGridColumn headerText="Nome"
+							   dataField="nome"
+							   width="200"/>
+			<mx:DataGridColumn headerText="Login"
+							   dataField="login"
+							   width="55"/>
+			<mx:DataGridColumn headerText="CPF"
+							   dataField="cpf"
+							   width="105"/>
+			<mx:DataGridColumn headerText="Data Nascimento"
+							   dataField="dataNascimento"
+							   width="110"/>
+			<mx:DataGridColumn headerText="Opções"
+							   dataField="opcoes"
+							   width="80">
+				<mx:itemRenderer>
+					<mx:Component>
+						<mx:HBox horizontalAlign="center">
+							<mx:Script>
+								<![CDATA[
+									import lib.classes.Usuario;
+
+									[Embed(source='../lib/images/editar.png')]
+									public static var icEdita:Class;
+
+									[Embed(source='../lib/images/excluir.png')]
+									public static var icExcluir:Class;
+								]]>
+							</mx:Script>
+							<mx:Image source="{icEdita}"
+									  click="outerDocument.editar()"
+									  toolTip="Click para editar."
+									  useHandCursor="true"/>
+							<mx:Image source="{icExcluir}"
+									  click="outerDocument.excluir()"
+									  toolTip="Click para excluir."
+									  useHandCursor="true"/>
+						</mx:HBox>
+					</mx:Component>
+				</mx:itemRenderer>
+			</mx:DataGridColumn>
+		</mx:columns>
+	</mx:DataGrid>
+	<mx:Label x="10"
+			  y="162"
+			  text="Pesquisar:"/>
+	<mx:TextInput x="78"
+				  y="160"
+				  id="txtPesquisarUsuario"
+				  width="194"
+				  enter="preencherDatagrid(true)"/>
+	<mx:RadioButton x="290"
+					y="160"
+					label="Nome"
+					groupName="rbtPesquisarUsuario"
+					id="rbtNome"
+					selected="true"/>
+	<mx:RadioButton x="360"
+					y="160"
+					label="CPF"
+					groupName="rbtPesquisarUsuario"
+					id="rbtCpf"/>
+
+	<mx:ControlBar height="42"
+				   horizontalAlign="right">
+		<mx:VRule height="20"/>
+		<mx:Button label="novo"
+				   id="btnNovoUsuario"
+				   width="60"
+				   click="carregarNovoUsuario()"/>
+		<mx:Button label="fechar"
+				   id="btnFechar"
+				   click="Funcoes.fecharPopUp(this)"/>
+	</mx:ControlBar>
+
+</mx:TitleWindow>

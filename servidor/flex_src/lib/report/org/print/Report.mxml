@@ -1,0 +1,210 @@
+<?xml version="1.0"?>
+<!--
+/*
+ * ============================================================================
+ * GNU Lesser General Public License
+ * ============================================================================
+ *
+ * FlexReport - Free Flex report-generating library.
+ * Copyright (C) 2008 Frederico Garcia
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307, USA.
+ * 
+ * Frederico Garcia
+ * fmotagarcia@kemelyon.com
+ * http://www.kemelyon.com
+ */
+ 
+/*
+ * Contributors:
+ * 
+ */
+ -->
+<mx:VBox xmlns:mx="http://www.adobe.com/2006/mxml" 
+	backgroundColor="#FFFFFF" 
+    paddingTop="50" 
+    paddingBottom="50" 
+    paddingLeft="50" 
+    paddingRight="50" 
+    width="595" 
+    height="842" 
+    verticalScrollPolicy="off" 
+    horizontalScrollPolicy="off" 
+    xmlns="*"
+    creationComplete="initComponent()"
+    fontFamily="Timeless"
+    fontAntiAliasType="normal" 
+    xmlns:print="lib.report.org.print.*">
+
+    <mx:Script>
+        <![CDATA[
+        	import mx.core.Application;
+        	import mx.core.UIComponent;
+        	/* ******************************************* */
+        	/* DATAPROVIDER - CHANGE THIS SECTION TO MATCH */	
+        	/* YOUR REPORT DATA                            */
+        	/* ******************************************* */
+        	
+			private var _dataProvider : Object;	
+			private var _title : String;
+			
+			public function get title() : String
+			{
+				return _title;
+			}
+			
+			public function set title(value : String) : void
+			{
+				_title = value;
+			}
+			
+			public function get dataProvider() : Object
+			{
+				return _dataProvider;
+			}
+			
+			public function set dataProvider(value:Object):void
+			{
+				_dataProvider = value;				
+				loadData();
+			}
+			
+			public function loadData():void
+			{
+				//Abstract
+			}
+			
+			/* ******************************** */
+			/* FONT - ALWAYS USE EMBEDDED FONTS */
+			/* ******************************** */
+			[Embed(mimeType="application/x-font",
+			source="/lib/report/assets/fonts/timeless.TTF",fontName="Timeless",advancedAntiAliasing="true")]
+			private var timeless:Class; 
+	
+		    [Embed(mimeType="application/x-font",
+			source="/lib/report/assets/fonts/timelessb.TTF",fontName="Timeless",fontWeight="bold",advancedAntiAliasing="true")]
+			private var timelessb:Class;
+						
+			/* *************** */ 
+			/* DEFAULT METHODS */	
+			/* *************** */	
+			private var children:Array;					
+			private function initComponent():void
+			{
+				children = getChildren();
+				parseChildren();
+				
+				pageNumber = 1;
+				title = "untitled";
+				showPage(Page.FIRST_PAGE);
+			}
+			
+			private function parseChildren():void {
+				var nElems:uint = 0;
+				
+				var children:Array = getChildren();
+				for each (var child:Object in children) {
+					if(child is Body) {
+						body = child as Body;
+						nElems++;
+					}
+				}
+				
+				if(nElems>1) {
+					dispatchEvent(new ErrorEvent("FlexReportError",true,true,"Apenas um corpo em cada relatório"));
+				}
+			}
+			
+			[Bindable]
+			public var body : Body; 
+			
+            [Bindable]
+            public var pageNumber:Number = 1;
+            						
+            public function showPage(pageType:uint):void
+            {
+            	var children:Array = getChildren();
+				for each (var child:UIComponent in children) {
+					if(child is PrintComponent) {
+						var printableChild:PrintComponent = child as PrintComponent;
+						
+						printableChild.pageNumber = pageNumber;
+						
+						if(pageType==Page.FIRST_PAGE&&(printableChild.showInFirstPage||printableChild.showInAllPages)) {
+							showChild(printableChild);
+						}
+						else if(pageType==Page.MIDDLE_PAGE&&(printableChild.showInMiddlePages||printableChild.showInAllPages)) {
+							showChild(printableChild);
+						}
+						else if(pageType==Page.LAST_PAGE&&(printableChild.showInLastPage||printableChild.showInAllPages)) {
+							showChild(printableChild);
+						}
+						else {
+							hideChild(printableChild);
+						}						
+					}
+				}
+                validateNow();
+            }
+			
+			private function hideChild(value:UIComponent):void {
+				value.visible = false;
+				value.includeInLayout = false;		
+			}
+						
+			private function showChild(value:UIComponent):void {
+				value.visible = true;
+				value.includeInLayout = true;	
+			}
+											
+			public function reset():void
+			{			
+				resetChildren();
+				
+				pageNumber = 1;
+				showPage(Page.FIRST_PAGE);				
+			}
+			
+			private function resetChildren():void
+			{
+				for each (var child:Object in children) {
+ 					try {
+						child.reset();
+					} catch (err:ReferenceError) {}
+				}
+			}			
+	        public function nextPage():Boolean
+	        {
+				if (body&&body.validNextPage) {
+		            body.nextPage();
+		            pageNumber++;
+		            
+		            if(body.validNextPage) 
+		            {
+		                showPage(Page.MIDDLE_PAGE);
+		            }  
+		            else {
+		            	showPage(Page.LAST_PAGE);
+		            }
+		            
+		            return true;			
+	 			}
+	 					
+	 			return false;
+	        }
+        ]]>
+    </mx:Script>
+
+</mx:VBox>

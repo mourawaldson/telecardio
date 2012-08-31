@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+				layout="absolute"
+				xmlns:ns1="com.adobe.wheelerstreet.fig.panzoom.*"
+				verticalAlign="top"
+				width="874"
+				height="822"
+				title="Tele Cardio - Visualização de Solicitações"
+				initialize="this.consultar();"
+				creationComplete="this.handleCreationComplete();">
+
+	<mx:Style source="../lib/css/estilo.css"/>
+	<mx:Style source="../lib/css/panZoom.css"/>
+
+	<mx:Script>
+		<![CDATA[
+			import lib.configuracao.Sessao;
+			import lib.configuracao.Validador;
+			import lib.funcoes.Funcoes;
+			import lib.classes.Exame;
+			import lib.configuracao.MensagensNegocio;
+			import lib.configuracao.NomesCampos;
+
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.events.CloseEvent;
+			import mx.rpc.events.ResultEvent;
+			import mx.validators.Validator;
+
+			import flash.net.navigateToURL;
+
+			private var DII:ArrayCollection=new ArrayCollection();
+			private var objDII:Object;
+
+			public var telaPai:solicitacaoAberta;
+
+			[Bindable]
+			private var exam:Exame;
+
+			public var idExam:int;
+
+			[Bindable]
+			private var _imageURL:String;
+
+			private var _contextMenu:ContextMenu;
+			private var _contextMenuItems:Array=["Zoom In Image", "Zoom Out Image", "Show All Image", "Toggle Smooth Bitmap"];
+
+			public function handleCreationComplete():void
+			{
+				_contextMenu=new ContextMenu();
+				_contextMenu.hideBuiltInItems();
+
+				for (var i:uint=0; i < _contextMenuItems.length; i++)
+				{
+					var menuItem:ContextMenuItem=new ContextMenuItem(_contextMenuItems[i]);
+					_contextMenu.customItems.push(menuItem);
+					menuItem.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT, handleContextMenu);
+				}
+
+				contextMenu=_contextMenu;
+			}
+
+			private function handleContextMenu(e:ContextMenuEvent):void
+			{
+				switch (ContextMenuItem(e.currentTarget).caption)
+				{
+					case "Zoom In Image":
+						imageViewer.zoomByOrigin("in")
+						break;
+
+					case "Zoom Out Image":
+						imageViewer.zoomByOrigin("out")
+						break;
+
+					case "Show All Image":
+						imageViewer.centerView();
+						break;
+
+					case "Toggle Smooth Bitmap":
+						imageViewer.smoothBitmap=(imageViewer.smoothBitmap == true) ? false : true;
+						break;
+				}
+			}
+
+			// Chama o controlador e efetua a consulta do exame solicitado.
+			private function consultar():void
+			{
+				controlador.consultarPorId(this.idExam);
+			}
+
+			//Função que abre um popup para confirmação de laudar solicitação. 
+			private function confirmacaoLaudar():void
+			{
+				Alert.yesLabel=NomesCampos.sim;
+				Alert.noLabel=NomesCampos.nao;
+				Alert.show(MensagensNegocio.exameConfirmarLaudar, MensagensNegocio.msgTipoConfirmacao, Alert.YES | Alert.NO, this, laudarSolicitacao);
+			}
+
+			// Resultado da consulta do exame solicitado.
+			private function onResultConsultarPorId(event:ResultEvent):void
+			{
+				this.exam=new Exame();
+				this.exam=event.result as Exame;
+				if (this.exam != null)
+					this.preencherCampos();
+			}
+
+			// Preenche os campos de acordo com os valores retornados da consulta.
+			private function preencherCampos():void
+			{
+				this.txtNomePaciente.text=this.exam.paciente.nome;
+				this.txtCpfPaciente.text=this.exam.paciente.cpf;
+				Funcoes.formatarCpf(this.txtCpfPaciente);
+				this.txtNascimentoPaciente.text=this.exam.paciente.dataNascimento;
+				this.txtMaePaciente.text=this.exam.paciente.nomeMae;
+				var peso:Number=this.exam.pesoPaciente;
+				//this.txtPesoPaciente.text=peso.toFixed(2);
+				var altura:Number=this.exam.alturaPaciente;
+				//this.txtAlturaPaciente.text=altura.toFixed(2);
+				if (altura > 0 && peso > 0)
+				{
+					var imc:Number=this.exam.calcularImc();
+					this.txtImc.text=imc.toFixed(2);
+					this.lbSituacaoImc.text=this.exam.determinarSituacaoImc(imc);
+				}
+				this.txtObservacoes.text=this.exam.observacoes;
+				this._imageURL=this.exam.caminhoArquivos + "\\GERAL.jpg";
+			}
+
+			private function onResultDefinirLaudando(event:ResultEvent):void
+			{
+				var validador:Validador=event.result as Validador;
+				if (validador.msgRetorno.length > 0)
+				{
+					var msgsRetorno:String=new String();
+					for (var i:int=0; i < validador.msgRetorno.length; i++)
+						msgsRetorno+=validador.msgRetorno[i].toString() + "\n"
+
+					Alert.show(msgsRetorno, MensagensNegocio.msgTipoAlerta);
+					Funcoes.fecharPopUp(this);
+					this.telaPai.preencherDataGrid();
+				}
+				else
+				{
+					var popUpLaudo:laudo=new laudo();
+
+					//atribui o id do paciente para tela.
+					popUpLaudo.idExam=this.exam.chave;
+					popUpLaudo.telaPai=visualizarSolicitacao(this);
+					popUpLaudo.exameAnterior=this.exam;
+					this.telaPai.preencherDataGrid();
+
+					Funcoes.instanciarTela(popUpLaudo, this);
+				}
+
+			}
+
+			//Função que recupera a resposta do popup de confirmação e lauda ou não a solicitação.
+			private function laudarSolicitacao(event:CloseEvent):void
+			{
+				if (event.detail == Alert.YES)
+				{
+					if (Sessao.userSessao.perfil.nome != NomesCampos.perfilMedico)
+						Alert.show(MensagensNegocio.exameApenasMedicosLaudam, NomesCampos.telaEmissaoLaudo);
+					else
+						controlador.definirLaudando(this.exam.chave);
+				}
+			}
+
+			private function telaGraficos():void
+			{
+				var popUpGrafico:graficos=new graficos();
+				popUpGrafico._imageURL=this.exam.caminhoArquivos + "\\GERAL.jpg";
+				Funcoes.instanciarTela(popUpGrafico, this);
+			}
+		]]>
+	</mx:Script>
+
+	<mx:RemoteObject id="controlador"
+					 showBusyCursor="true"
+					 destination="controladorExame">
+		<mx:method name="consultarPorId"
+				   result="this.onResultConsultarPorId(event);"
+				   fault="Funcoes.onFault(event);"/>
+		<mx:method name="definirLaudando"
+				   result="this.onResultDefinirLaudando(event);"
+				   fault="Funcoes.onFault(event)"/>
+	</mx:RemoteObject>
+
+	<mx:Label x="10"
+			  y="10"
+			  text="Nome:"/>
+	<mx:Label x="376"
+			  y="39"
+			  text="CPF:"/>
+	<mx:TextInput x="53"
+				  y="9"
+				  id="txtNomePaciente"
+				  width="315"
+				  editable="false"/>
+	<mx:TextInput x="419"
+				  y="38"
+				  id="txtCpfPaciente"
+				  editable="false"
+				  width="194"/>
+	<mx:Label x="376"
+			  y="11"
+			  text="Data de Nascimento:"/>
+	<mx:TextInput x="488"
+				  y="10"
+				  width="125"
+				  id="txtNascimentoPaciente"
+				  editable="false"/>
+	<mx:Label x="10"
+			  y="39"
+			  text="Nome da Mãe:"/>
+	<mx:TextInput x="91"
+				  y="38"
+				  id="txtMaePaciente"
+				  width="277"
+				  editable="false"/>
+	<mx:TextArea x="10"
+				 y="88"
+				 width="826"
+				 height="97"
+				 id="txtObservacoes"
+				 wordWrap="true"
+				 verticalScrollPolicy="auto"
+				 editable="false">
+	</mx:TextArea>
+	<mx:Label x="10"
+			  y="67"
+			  text="Observações:"/>
+	<!--<mx:Label x="10"
+		 y="97"
+		 text="Data Últ.Exame:"/>
+		 <mx:TextInput x="98"
+		 y="96"
+		 width="115"
+		 id="txtUltimoExame"
+		 editable="false"/>
+		 <mx:Label x="236"
+		 y="97"
+		 text="Convênio:"/>
+		 <mx:TextInput x="297"
+		 y="96"
+		 width="403"
+		 id="txtConvenioPaciente"
+		 editable="false"/>-->
+	<mx:Label x="630"
+			  y="12"
+			  text="IMC:"/>
+	<mx:TextInput x="663"
+				  y="11"
+				  width="61"
+				  id="txtImc"
+				  editable="false"/>
+	<mx:Label x="732"
+			  y="12"
+			  id="lbSituacaoImc"/>
+
+	<mx:Canvas width="824.5"
+			   x="11.5"
+			   y="193"
+			   height="541">
+
+		<!--ImageViewer -->
+		<!--Navigation controlls -->
+		<mx:VBox left="10"
+				 top="10"
+				 width="20">
+
+			<mx:Spacer/>
+
+			<mx:Button styleName="ZoomOutButton"
+					   toolTip="Zoom In"
+					   click="{imageViewer.zoom('in');}"/>
+
+			<mx:HBox width="20">
+
+				<mx:VSlider minimum="{ imageViewer.bitmapScaleFactorMin }"
+							maximum="{ imageViewer.bitmapScaleFactorMax }"
+							value="{ imageViewer.bitmapScaleFactor }"
+							change="{ imageViewer.setZoom(VSlider(event.currentTarget).value) }"
+							snapInterval=".001"
+							liveDragging="true"/>
+
+			</mx:HBox>
+
+			<mx:Button styleName="ZoomInButton"
+					   toolTip="Zoom Out"
+					   click="{ imageViewer.zoom('out'); }"/>
+
+			<mx:Spacer/>
+
+		</mx:VBox>
+		<ns1:ImageViewer id="imageViewer"
+						 imageURL="{ _imageURL }"
+						 bitmapScaleFactorMax="5"
+						 bitmapScaleFactorMin=".05"
+						 width="824.5"
+						 height="541"
+						 x="0"
+						 y="0"/>
+
+	</mx:Canvas>
+
+	<mx:ControlBar height="47"
+				   y="415"
+				   horizontalAlign="right">
+		<mx:Button label="laudar"
+				   id="btnLaudar"
+				   click="this.confirmacaoLaudar();"
+				   width="81"/>
+		<mx:Button label="fechar"
+				   id="btnFechar"
+				   click="Funcoes.fecharPopUp(this);"/>
+	</mx:ControlBar>
+
+</mx:TitleWindow>

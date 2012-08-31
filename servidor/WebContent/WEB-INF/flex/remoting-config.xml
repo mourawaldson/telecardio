@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<service id="remoting-service" class="flex.messaging.services.RemotingService">
+
+	<adapters>
+		<adapter-definition id="java-object"
+			class="flex.messaging.services.remoting.adapters.JavaAdapter"
+			default="true" />
+	</adapters>
+
+	<default-channels>
+		<channel ref="my-amf" />
+	</default-channels>
+
+	<destination id="controladorUsuario">
+		<properties>
+			<source>
+				nutes.telecardio.controle.estruturaorganizacional.ControladorUsuario
+			</source>
+		</properties>
+	</destination>
+
+	<destination id="controladorConfiguracao">
+		<properties>
+			<source>
+				nutes.telecardio.controle.estruturaorganizacional.ControladorConfiguracao
+			</source>
+		</properties>
+	</destination>
+
+	<destination id="controladorPaciente">
+		<properties>
+			<source>
+				nutes.telecardio.controle.estruturaorganizacional.ControladorPaciente
+			</source>
+		</properties>
+	</destination>
+
+	<destination id="controladorExame">
+		<properties>
+			<source>
+				nutes.telecardio.controle.estruturaorganizacional.ControladorExame
+			</source>
+		</properties>
+	</destination>
+
+</service>

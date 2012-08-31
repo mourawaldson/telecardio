@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<PrintComponent xmlns="lib.report.org.print.*"
+				xmlns:mx="http://www.adobe.com/2006/mxml"
+				width="400"
+				height="100">
+
+	<mx:Style source="../lib/css/estilo.css"/>
+
+	<mx:Script>
+		<![CDATA[
+			[Bindable]
+			public var title:String="Resultado de Exame de Eletrocardiograma";
+			[Bindable]
+			[Embed(source="../lib/images/marca.jpg")]
+			public static var logo:Class;
+		]]>
+	</mx:Script>
+
+	<mx:Label text="Agility Sistemas"
+			  color="#000000"
+			  styleName="Rotulos-Relatorio"
+			  fontWeight="bold"
+			  fontSize="16"
+			  top="0"
+			  left="0"/>
+	<mx:Label text="Página: {pageNumber}"
+			  fontSize="12"
+			  right="0"
+			  top="0"/>
+	<mx:Image x="0"
+			  y="23"
+			  source="{logo}"/>
+	<mx:Label text="{title}"
+			  color="#000000"
+			  fontWeight="bold"
+			  fontSize="12"
+			  top="50"
+			  left="65"/>
+	<mx:Label text="{date} as {time}"
+			  color="#000000"
+			  fontWeight="normal"
+			  fontSize="12"
+			  top="60"
+			  left="65"/>
+</PrintComponent>

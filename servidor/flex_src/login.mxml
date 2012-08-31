@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+				xmlns:validators="validators.*"
+				layout="absolute"
+				width="650"
+				height="338"
+				showCloseButton="false"
+				modalTransparencyColor="#DBF8B8"
+				initialize="this.init()"
+				borderStyle="none"
+				horizontalAlign="center">
+
+	<mx:Style source="lib/css/estilo.css"/>
+
+	<validators:validacaoString id="valLogin"
+								source="{txtLogin}"
+								property="text"
+								minLength="3"/>
+	<validators:validacaoString id="valSenha"
+								source="{txtSenha}"
+								property="text"
+								minLength="4"/>
+
+	<mx:Script>
+		<![CDATA[
+			import lib.funcoes.Funcoes;
+			import lib.configuracao.*;
+			import lib.classes.Usuario;
+
+			import md_usuario.usuario;
+
+			import mx.controls.Alert;
+			import mx.validators.Validator;
+			import mx.rpc.events.ResultEvent;
+			import mx.core.Application;
+			import mx.collections.ArrayCollection;
+
+			private var usuario:Usuario;
+
+			//Tela pai que chama esta tela
+			public var telaPai:index;
+
+			private function limpar():void
+			{
+				var inputs:Array=new Array(this.txtLogin, this.txtSenha);
+				Funcoes.clearTextInputs(inputs);
+				focusManager.setFocus(txtLogin);
+			}
+
+			private function logar():void
+			{
+				var erros:Array=Validator.validateAll(new Array(valLogin, valSenha));
+				usuario=new Usuario();
+
+				if (erros.length == 0)
+				{
+					usuario.login=txtLogin.text;
+					usuario.senha=txtSenha.text;
+					controlador.consultarUsuarioPorLoginSenha(usuario);
+				}
+				else
+				{
+					var camposObrigatorios:String=new String();
+					if (Funcoes.isNullOrEmpty(txtLogin.text))
+						camposObrigatorios+=NomesCampos.login + "\n";
+
+					if (Funcoes.isNullOrEmpty(txtSenha.text))
+						camposObrigatorios+=NomesCampos.senha + "\n";
+
+					if (camposObrigatorios.length > 0)
+						Alert.show(MensagensNegocio.campoObrigatorio + "\n" + camposObrigatorios, MensagensNegocio.msgTipoAlerta);
+				}
+			}
+
+			// Retorno do metodo consultarUsuarioPorLoginSenha do controlador da página
+			private function onResultLogin(event:ResultEvent):void
+			{
+				usuario=event.result as Usuario;
+				if (usuario != null)
+				{
+					Sessao.userSessao=usuario;
+
+					telaPai.carregarSessao();
+					Funcoes.fecharPopUp(this);
+				}
+				else
+					Alert.show(MensagensNegocio.loginSenhaInvalido, MensagensNegocio.msgTipoAlerta);
+			}
+
+			public function init():void
+			{
+				Security.allowDomain("*");
+				Security.allowInsecureDomain("*")
+				Security.loadPolicyFile("crossdomain.xml");
+				this.width=screen.width;
+				this.height=screen.height;
+				this.cvsMenu.y=(screen.height / 2) - 135;
+			}
+		]]>
+	</mx:Script>
+
+	<mx:RemoteObject id="controlador"
+					 showBusyCursor="true"
+					 destination="controladorUsuario">
+		<mx:method name="consultarUsuarioPorLoginSenha"
+				   result="this.onResultLogin(event)"
+				   fault="Funcoes.onFault(event)"/>
+	</mx:RemoteObject>
+	<mx:Canvas width="270"
+			   height="144"
+			   id="cvsMenu"
+			   horizontalCenter="55"
+			   borderColor="#87B440"
+			   borderStyle="solid"
+			   cornerRadius="5"
+			   verticalCenter="-69">
+		<mx:TextInput id="txtLogin"
+					  x="64"
+					  y="40"
+					  width="192"
+					  tabIndex="0"
+					  maxChars="20"/>
+		<mx:Button label="entrar"
+				   id="btnLogar"
+				   click="this.logar();"
+				   x="64"
+				   y="108"
+				   width="69"
+				   tabIndex="2"/>
+		<mx:TextInput x="64"
+					  y="74"
+					  id="txtSenha"
+					  enter="this.logar();"
+					  width="192"
+					  displayAsPassword="true"
+					  tabIndex="1"
+					  maxChars="32"/>
+		<mx:Label x="11"
+				  y="42"
+				  text="Login:"/>
+		<mx:Label x="11"
+				  y="76"
+				  text="Senha:"/>
+		<mx:Button x="143"
+				   y="108"
+				   label="limpar"
+				   id="btnLimpar"
+				   click="this.limpar();"
+				   tabIndex="3"/>
+		<mx:Label x="11"
+				  y="2"
+				  text="Bem vindo ao TeleCardio"
+				  fontSize="14"
+				  fontWeight="bold"/>
+	</mx:Canvas>
+	<!--<mx:Label x="14" y="118" text="Esqueceu sua senha? Clique "/>
+		 <mx:LinkButton x="147" y="116" label="aqui!" id="lbLembrete" width="49" click="Funcoes.telaLembrete(this);" tabIndex="4"/>-->
+
+</mx:TitleWindow>

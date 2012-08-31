@@ -1,0 +1,814 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+				xmlns:validators="validators.*"
+				layout="absolute"
+				width="522"
+				height="476"
+				title="Tele Cardio - Novo Usuário"
+				showCloseButton="false"
+				horizontalScrollPolicy="off"
+				verticalScrollPolicy="off"
+				initialize="carregarTela()"
+				xmlns:ns1="com.flexpernambuco.controls.*">
+
+	<mx:Style source="../lib/css/estilo.css"/>
+
+
+	<validators:validacaoString id="valNome"
+								source="{txtNome}"
+								property="text"
+								minLength="5"/>
+	<validators:validacaoString id="valCpf"
+								source="{txtCpf}"
+								property="text"
+								minLength="14"/>
+	<validators:validacaoString id="valNascimento"
+								source="{txtNascimento}"
+								property="text"
+								minLength="10"/>
+	<validators:validacaoString id="valEndereco"
+								source="{txtEndereco}"
+								property="text"
+								minLength="10"/>
+	<validators:validacaoString id="valNumero"
+								source="{txtNumero}"
+								property="text"
+								minLength="1"/>
+	<validators:validacaoString id="valBairro"
+								source="{txtBairro}"
+								property="text"
+								minLength="2"/>
+	<validators:validacaoString id="valCep"
+								source="{txtCep}"
+								property="text"
+								minLength="10"/>
+	<validators:validacaoString id="valMunicipio"
+								source="{txtMunicipio}"
+								property="text"
+								minLength="3"/>
+	<validators:validacaoString id="valLogin"
+								source="{txtLogin}"
+								property="text"
+								minLength="3"/>
+	<validators:validacaoString id="valSenha"
+								source="{txtSenha}"
+								property="text"
+								minLength="4"/>
+	<validators:validacaoString id="valConfirmeSenha"
+								source="{txtConfirmeSenha}"
+								property="text"
+								minLength="4"/>
+	<validators:validacaoString id="valEmail2"
+								source="{txtEmail}"
+								property="text"
+								minLength="7"/>
+	<validators:validacaoString id="valHabilitacao"
+								source="{txtHabilitacao}"
+								property="text"
+								minLength="3"/>
+	<validators:validacaoEmail id="valEmail"
+							   source="{txtEmail}"
+							   property="text"/>
+
+
+
+	<mx:Script>
+		<![CDATA[
+			import lib.report.org.utils.IntegerUtils;
+			import lib.classes.Funcionalidade;
+			import lib.funcoes.DateUtil;
+			import lib.funcoes.DateUtil;
+			import mx.charts.chartClasses.DataDescription;
+			import lib.funcoes.Funcoes;
+			import lib.classes.Perfil;
+			import mx.binding.utils.BindingUtils;
+			import lib.configuracao.NomesCampos;
+			import lib.configuracao.CamposBanco;
+			import lib.classes.Uf;
+			import mx.messaging.AbstractConsumer;
+			import lib.classes.Endereco;
+			import lib.classes.OrgaoClasse;
+			import lib.classes.Profissional;
+			import lib.classes.ProfissionalOrgao;
+			import lib.classes.ProfissionalTipo;
+			import lib.configuracao.MensagensNegocio;
+			import lib.configuracao.Validador;
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.managers.PopUpManager;
+			import mx.validators.Validator;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			import lib.classes.Usuario;
+			import lib.classes.Perfil;
+			import lib.configuracao.Sessao;
+			import mx.events.CloseEvent;
+
+
+			//Propriedades que serão utilizadas na tela
+
+			//Usuário que será inserido
+			[Bindable]
+			private var user:Usuario;
+
+			//Endereço de usuário
+			[Bindable]
+			private var endereco:Endereco;
+
+			//Uf de endereço
+			[Bindable]
+			private var uf:Uf;
+
+			//Perfil do usuário
+			[Bindable]
+			private var perfil:Perfil;
+
+			//Profissão do usuário
+			[Bindable]
+			private var profissional:Profissional;
+
+			//Propriedade de profissional
+			[Bindable]
+			private var profissionalOrgao:ProfissionalOrgao;
+
+			//Propriedade de profissional
+			[Bindable]
+			private var profissionalTipo:ProfissionalTipo;
+
+			//Propriedade de profissionalOrgao
+			[Bindable]
+			private var orgaoClasse:OrgaoClasse;
+
+			//Coleção de Profissões onde será utilizada para preencher o combobox de Profissão                
+			[Bindable]
+			public var profissoes:ArrayCollection=new ArrayCollection();
+
+			//Coleção de Orgãos de Classe que será utilizada para preencher o combobox de Orgãos de Classe
+			[Bindable]
+			public var orgaosClasse:ArrayCollection=new ArrayCollection();
+
+			//Coleção de Ufs que será utilizada para preencher o combobox de Ufs de Orgãos de Classe                  
+			[Bindable]
+			public var ufsOrgao:ArrayCollection=new ArrayCollection();
+
+			//Colceção de Ufs que será utilizada para preencher o combobox de Ufs Endereço
+			[Bindable]
+			public var ufsEndereco:ArrayCollection=new ArrayCollection();
+
+			//Coleção de Perfis que será utilizada para preencher o combobox de Perfis
+			[Bindable]
+			public var perfis:ArrayCollection=new ArrayCollection();
+
+			//Tela pai desta tela
+			public var telaPai:usuario;
+
+			//Funcção chamada pelo evento change do combobox de perfil
+			private function closeHandler():void
+			{
+				if(cbbPerfil.selectedLabel != NomesCampos.administrador){
+					ajustarTelaParaProfissional();
+					selecionarOrgaoPorPerfil(cbbPerfil.selectedItem as Perfil, cbbOrgaoDeClasse);
+				} else{
+					ajustarTelaParaAdministrador();
+				} 
+			}
+			
+			private function selecionarOrgaoPorPerfil(perfil: Perfil, comboboxOrgaoClasse: ComboBox): void{				
+				comboboxOrgaoClasse.dataProvider = orgaosClasse;
+				switch (perfil.nome){
+					case NomesCampos.perfilEnfermeiro:
+					
+					for (var i:int = 0; i < comboboxOrgaoClasse.dataProvider.length; i++){
+					comboboxOrgaoClasse.selectedIndex=i;
+					var orgaoClasse:OrgaoClasse=comboboxOrgaoClasse.selectedItem as OrgaoClasse;
+					
+						if (orgaoClasse.sigla == NomesCampos.orgaoCOREN)
+						{					
+							break;
+						}					
+					}					
+					break;
+					
+					case NomesCampos.perfilMedico:
+						
+					for (var i:int = 0; i < comboboxOrgaoClasse.dataProvider.length; i++){
+					comboboxOrgaoClasse.selectedIndex=i;
+					var orgaoClasse:OrgaoClasse=comboboxOrgaoClasse.selectedItem as OrgaoClasse;
+					
+						if (orgaoClasse.sigla == NomesCampos.orgaoCRM)
+						{		
+							break;
+						}					
+					}
+					
+					break;
+					case NomesCampos.perfilAuxiliarEnfermagem :
+						
+					for (var i:int = 0; i < comboboxOrgaoClasse.dataProvider.length; i++){
+					comboboxOrgaoClasse.selectedIndex=i;
+					var orgaoClasse:OrgaoClasse=comboboxOrgaoClasse.selectedItem as OrgaoClasse;
+					
+						if (orgaoClasse.sigla == NomesCampos.orgaoCOREN)
+						{						
+							break;
+						}					
+					}
+					
+					break;
+				}
+				
+				var orgaos:ArrayCollection = new ArrayCollection();
+				orgaos.addItem(comboboxOrgaoClasse.selectedItem as OrgaoClasse);
+				comboboxOrgaoClasse.dataProvider = orgaos;
+				comboboxOrgaoClasse.selectedIndex = 0;				
+				setarProfissaoUf();
+				
+					
+			}
+
+			//Função que ajusta os campos da tela para ser vista pelo usuário que seja um profissional de saúde
+			private function ajustarTelaParaProfissional():void
+			{
+				if (this.height != 476)
+				{
+					this.height=476;
+					this.y=y - 80;
+				}
+			}
+
+			//Função que ajusta os campos da tela para ser vista pelo administrador
+			private function ajustarTelaParaAdministrador():void
+			{
+				if (this.height != 366)
+				{
+					this.height=366;
+					this.y=y + 80;
+				}
+			}
+
+
+			//Função que será chamada no load da pagina
+			private function carregarTela():void
+			{
+				reduzirTamanho();
+
+				//Métodos do controlador da página
+				controlador.consultarListaPerfil();
+				controlador.consultarListaOrgaoClasse();
+				controlador.consultarListaUf();
+			}
+
+			//Limpa a tela
+			private function limparTela():void
+			{
+				var inputs:Array=new Array(txtNome, txtSenha, txtComplemento, txtConfirmeSenha, txtLogin, txtEndereco, txtNumero, txtBairro, txtCep, txtMunicipio, txtEmail, txtHabilitacao, txtCpf);
+				Funcoes.clearTextInputs(inputs);
+			}
+
+
+			private function reduzirTamanho():void
+			{
+				this.height=366;
+			}
+
+			//Função que abre um popup para confirmação de inserção do usuário. 
+			private function confirmacaoSalvaUsuario():void
+			{
+				Alert.yesLabel=NomesCampos.sim;
+				Alert.noLabel=NomesCampos.nao;
+				Alert.show(MensagensNegocio.UsuarioConfirmarSalvar, MensagensNegocio.msgTipoConfirmacao, Alert.YES | Alert.NO, this, salvarUsuario);
+			}
+
+			//Função que recupera a resposta do popup de confirmação e salva ou não o usuário.
+			private function salvarUsuario(event:CloseEvent):void
+			{
+				if (event.detail == Alert.YES)
+				{
+					user=new Usuario();
+					user.endereco=new Endereco();
+
+					user.endereco.municipio=txtMunicipio.text;
+					user.endereco.bairro=txtBairro.text;
+					uf=cbbUf.selectedItem as Uf;
+
+					user.endereco.uf=uf;
+					user.endereco.logradouro=txtEndereco.text;
+					user.endereco.cep=txtCep.text;
+					user.endereco.formatarCep();
+					user.endereco.complemento=txtComplemento.text;
+					user.endereco.numero=txtNumero.text;
+					user.endereco.municipio=txtMunicipio.text;
+
+					user.cpf=txtCpf.text;
+					user.formatarCpf();
+					user.dataNascimento=txtNascimento.text;
+					user.nome=txtNome.text;
+					user.login=txtLogin.text;
+					user.email=txtEmail.text;
+					user.senha=txtSenha.text;
+					user.sexo=rbgSexoMasculino.selected ? NomesCampos.sexoMasculino : NomesCampos.sexoFeminino;
+
+					user.perfil=cbbPerfil.selectedItem as Perfil;
+					
+
+					if (user.perfil.nome != NomesCampos.administrador.toString())
+					{
+
+						profissionalOrgao=new ProfissionalOrgao();
+						user.profissional=new Profissional();
+
+						profissionalOrgao.habilitacao=IntegerUtils.parseInteger(txtHabilitacao.text);
+						profissionalOrgao.orgaoClasse=cbbOrgaoDeClasse.selectedItem as OrgaoClasse;
+						profissionalOrgao.uf=cbbUfOrgao.selectedItem as Uf;
+						profissionalOrgao.profissional=user.profissional;
+
+						user.profissional.profissionalTipo=cbbProfissao.selectedItem as ProfissionalTipo;
+						user.profissional.usuario=user;
+						user.profissional.profissionaisOrgaos=new ArrayCollection();
+						user.profissional.profissionaisOrgaos.addItem(profissionalOrgao);
+
+					}
+					else
+					{
+						user.profissional=null;
+					}
+
+					controlador.inserirUsuarioProfissional(user);
+
+
+
+				}
+			}
+
+			//Verifica todos os campos obrigatorios para montar a mensagem de erro    		
+			private function verificarCampos():void
+			{
+
+				var camposObrigatorios:String=new String();
+				if (Funcoes.isNullOrEmpty(txtNome.text) || txtNome.text.length < valNome.minLength)
+				{
+					camposObrigatorios+=NomesCampos.nome + "\n";
+				}
+
+				if (Funcoes.isNullOrEmpty(txtCpf.text) || txtCpf.text.length < valCpf.minLength)
+				{
+					camposObrigatorios+=NomesCampos.cpf + "\n";
+				}
+
+				if (Funcoes.isNullOrEmpty(txtNascimento.text) || txtNascimento.text.length < valNascimento.minLength)
+				{
+					camposObrigatorios+=NomesCampos.dataNascimento + "\n";
+				}
+
+				if (Funcoes.isNullOrEmpty(txtEndereco.text) || txtEndereco.text.length < valEndereco.minLength)
+				{
+					camposObrigatorios+=NomesCampos.endereco + "\n";
+				}
+
+				if (Funcoes.isNullOrEmpty(txtNumero.text) || txtNumero.text.length < valNumero.minLength)
+				{
+					camposObrigatorios+=NomesCampos.numero + "\n";
+				}
+
+				if (Funcoes.isNullOrEmpty(txtBairro.text) || txtBairro.text.length < valBairro.minLength)
+				{
+					camposObrigatorios+=NomesCampos.bairro + "\n";
+				}
+
+				if (Funcoes.isNullOrEmpty(txtCep.text) || txtCep.text.length < valCep.minLength)
+				{
+					camposObrigatorios+=NomesCampos.cep + "\n";
+				}
+
+				if (Funcoes.isNullOrEmpty(txtMunicipio.text) || txtMunicipio.text.length < valMunicipio.minLength)
+				{
+					camposObrigatorios+=NomesCampos.municipio + "\n";
+				}
+
+				if (Funcoes.isNullOrEmpty(txtLogin.text) || txtLogin.text.length < valLogin.minLength)
+				{
+					camposObrigatorios+=NomesCampos.login + "\n";
+				}
+
+				if (Funcoes.isNullOrEmpty(txtSenha.text) || txtSenha.text.length < valSenha.minLength)
+				{
+					camposObrigatorios+=NomesCampos.senha + "\n";
+				}
+
+				if (Funcoes.isNullOrEmpty(txtConfirmeSenha.text) || txtConfirmeSenha.text.length < valConfirmeSenha.minLength)
+				{
+					camposObrigatorios+=NomesCampos.confirmacaoSenha + "\n";
+				}
+
+				if (Funcoes.isNullOrEmpty(txtEmail.text) || txtEmail.text.length < valEmail2.minLength)
+				{
+					camposObrigatorios+=NomesCampos.email + "\n";
+				}
+
+				if (cbbUf.selectedIndex == -1)
+				{
+					camposObrigatorios+=NomesCampos.ufEndereco + "\n";
+				}
+
+				if (cbbPerfil.selectedIndex == -1)
+				{
+					camposObrigatorios+=NomesCampos.perfil + "\n";
+				}
+				else
+				{
+
+					if ((cbbPerfil.selectedItem as Perfil).nome != NomesCampos.administrador)
+					{
+						if (cbbOrgaoDeClasse.selectedIndex == -1)
+						{
+
+							camposObrigatorios+=NomesCampos.orgaoClasse + "\n";
+						}
+
+						if (cbbProfissao.selectedIndex == -1)
+						{
+
+							camposObrigatorios+=NomesCampos.profissionalSaude + "\n";
+						}
+
+						if (cbbUfOrgao.selectedIndex == -1)
+						{
+
+							camposObrigatorios+=NomesCampos.ufEndereco + "\n";
+						}
+
+						if (Funcoes.isNullOrEmpty(txtHabilitacao.text) || txtHabilitacao.text.length < valHabilitacao.minLength)
+						{
+							camposObrigatorios+=NomesCampos.habilitacao + "\n";
+						}
+					}
+				}
+				Alert.show(MensagensNegocio.campoObrigatorio + "\n" + camposObrigatorios, NomesCampos.telaNovoUsuario);
+
+			}
+
+			//Evento chamado ao clicar no botão salvar que irá inserir um usuário no banco, chamando o método do controlador da pagina
+			private function salvar():void
+			{
+
+				var erros:Array=Validator.validateAll(new Array(valNome, valCpf, valNascimento, valLogin, valSenha, valConfirmeSenha, valEndereco, valNumero, valBairro, valCep, valMunicipio, valEmail2, valEmail));
+
+				var errosEspecificos:Array=Validator.validateAll(new Array());
+
+				//Se tiver com as validações dos campos ok efetua o processo de salvar o usuário
+				if (erros.length == 0 && !(cbbPerfil.selectedIndex == -1) && !(cbbUf.selectedIndex == -1))
+				{
+					if ((cbbPerfil.selectedItem as Perfil).nome != NomesCampos.administrador)
+					{
+
+						if (!(cbbOrgaoDeClasse.selectedIndex == -1) && !(cbbProfissao.selectedIndex == -1) && !(cbbUfOrgao.selectedIndex == -1) && !(Funcoes.isNullOrEmpty(txtHabilitacao.text)))
+						{
+							confirmacaoSalvaUsuario();
+						}
+						else
+						{
+							verificarCampos();
+						}
+					}
+					else
+					{
+						confirmacaoSalvaUsuario();
+					}
+				}
+				else
+				{
+					verificarCampos();
+				}
+			}
+
+			//Função chamada no evento do combobox de Orgão de Classe que será chamado no change
+			private function setarProfissaoUf():void
+			{
+				var orgaoClasse:OrgaoClasse=this.cbbOrgaoDeClasse.selectedItem as OrgaoClasse;
+				controlador.consultarListaUfPorOrgaoClasse(orgaoClasse);
+				controlador.consultarListaProfissionaisTipoPorOrgao(orgaoClasse);
+			}
+
+			//Retorno do metodo consultarListaOrgaoClasse do controlador da página
+			private function onResultListarOrgao(event:ResultEvent):void
+			{
+				orgaosClasse=event.result as ArrayCollection;
+				controlador.consultarListaUfPorOrgaoClasse(orgaosClasse[0]);
+				controlador.consultarListaProfissionaisTipoPorOrgao(orgaosClasse[0]);
+			}
+
+			//Retorno do metodo consultarListaUfPorOrgaoClasse do controlador da página
+			private function onResultListarUfOrgaoClasse(event:ResultEvent):void
+			{
+				ufsOrgao=event.result as ArrayCollection;
+
+			}
+
+			//Retorno do metodo consultarListaUf do controlador da página
+			private function onResultListarUfEndereco(event:ResultEvent):void
+			{
+				ufsEndereco=event.result as ArrayCollection;
+			}
+
+			//Retorno do metodo consultarListaProfissionaisTipoPorOrgao do controlador da página
+			private function onResultListarProfissionaisTipo(event:ResultEvent):void
+			{
+				profissoes=event.result as ArrayCollection;
+			}
+
+			//Retorno do metodo consultarListaPerfil do controlador da página
+			private function onResultListarPerfil(event:ResultEvent):void
+			{
+				perfis=event.result as ArrayCollection;
+			}
+
+			//Retorno do metodo inserirUsuarioProfissional do controlador da página
+			private function onResultInserirUsuario(event:ResultEvent):void
+			{
+				var validador:Validador=event.result as Validador;
+				if (validador.msgRetorno.length <= 0)
+				{
+					Alert.show(MensagensNegocio.usuarioCadastradoSucesso, MensagensNegocio.msgTipoConfirmacao);
+					telaPai.preencherDatagrid(false);
+					PopUpManager.removePopUp(this);
+				}
+				else
+				{
+					var msgsRetorno:String=new String();
+					for (var i:int=0; i < validador.msgRetorno.length; i++)
+					{
+						msgsRetorno+=validador.msgRetorno[i].toString() + "\n"
+					}
+					Alert.show(msgsRetorno, MensagensNegocio.msgTipoErro);
+				}
+			}
+		]]>
+	</mx:Script>
+	<mx:RemoteObject id="controlador"
+					 showBusyCursor="true"
+					 destination="controladorUsuario">
+		<mx:method name="consultarListaOrgaoClasse"
+				   result="onResultListarOrgao(event)"
+				   fault="Funcoes.onFault(event)"/>
+		<mx:method name="consultarListaUfPorOrgaoClasse"
+				   result="onResultListarUfOrgaoClasse(event)"
+				   fault="Funcoes.onFault(event)"/>
+		<mx:method name="consultarListaProfissionaisTipoPorOrgao"
+				   result="onResultListarProfissionaisTipo(event)"
+				   fault="Funcoes.onFault(event)"/>
+		<mx:method name="consultarListaUf"
+				   result="onResultListarUfEndereco(event)"
+				   fault="Funcoes.onFault(event)"/>
+		<mx:method name="consultarListaPerfil"
+				   result="onResultListarPerfil(event)"
+				   fault="Funcoes.onFault(event)"/>
+		<mx:method name="inserirUsuarioProfissional"
+				   result="onResultInserirUsuario(event)"
+				   fault="Funcoes.onFault(event)"/>
+	</mx:RemoteObject>
+	<mx:Label x="10"
+			  y="10"
+			  text="Nome:"/>
+	<mx:TextInput x="53"
+				  y="9"
+				  id="txtNome"
+				  maxChars="100"
+				  width="439"
+				  tabIndex="0"/>
+	<mx:Label x="10"
+			  y="38"
+			  text="CPF:"/>
+	<mx:TextInput x="53"
+				  y="37"
+				  id="txtCpf"
+				  restrict="0-9"
+				  tabIndex="1"
+				  toolTip="Digite apenas números!"
+				  editable="true"
+				  enabled="true"
+				  maxChars="11"
+				  keyUp="Funcoes.formatarCpf(this.txtCpf)"/>
+	<mx:Label x="255"
+			  y="38"
+			  text="Data Nasc.:"/>
+	<mx:DateField x="324"
+				  y="37"
+				  id="txtNascimento"
+				  yearNavigationEnabled="true"
+				  displayedYear="1960"
+				  width="100"
+				  tabIndex="2"
+				  showToday="true"
+				  editable="false"
+				  formatString="DD/MM/YYYY"/>
+	<mx:Label x="10"
+			  y="193"
+			  text="Login:"/>
+	<mx:HRule x="10"
+			  y="182"
+			  width="480"
+			  height="3"/>
+	<mx:TextInput x="53"
+				  y="192"
+				  id="txtLogin"
+				  maxChars="20"
+				  tabIndex="12"/>
+	<mx:Label x="10"
+			  y="221"
+			  text="Senha:"/>
+	<mx:TextInput x="53"
+				  y="220"
+				  id="txtSenha"
+				  maxChars="32"
+				  tabIndex="14"
+				  displayAsPassword="true"/>
+	<mx:Label x="249"
+			  y="221"
+			  text="Confirmação:"/>
+	<mx:TextInput x="330"
+				  y="220"
+				  id="txtConfirmeSenha"
+				  maxChars="32"
+				  tabIndex="15"
+				  focusOut="Funcoes.compararSenhas(txtSenha,txtConfirmeSenha)"
+				  displayAsPassword="true"/>
+	<mx:RadioButtonGroup id="rbgTipoUsuario"/>
+	<mx:Label x="10"
+			  y="363"
+			  text="Profissão:"/>
+	<mx:ComboBox x="106"
+				 y="361"
+				 id="cbbProfissao"
+				 prompt="Selecione"
+				 dataProvider="{profissoes}"
+				 labelField="nome"
+				 tabIndex="19">
+	</mx:ComboBox>
+	<mx:Label x="10"
+			  y="302"
+			  text="Órgão de classe:"/>
+	<mx:ComboBox x="106"
+				 y="300"
+				 id="cbbOrgaoDeClasse"
+				 prompt="Selecione"
+				 dataProvider="{orgaosClasse}"
+				 labelField="nome"
+				 tabIndex="17"
+				 change="setarProfissaoUf()"
+				 selectedIndex="1">
+	</mx:ComboBox>
+	<mx:Label x="10"
+			  y="333"
+			  text="Estado:"/>
+	<mx:ComboBox x="106"
+				 y="331"
+				 id="cbbUfOrgao"
+				 prompt="Selecione"
+				 dataProvider="{ufsOrgao}"
+				 labelField="sigla"
+				 tabIndex="18">
+	</mx:ComboBox>
+	<mx:Label x="289"
+			  y="362"
+			  text="Habilitação:"/>
+	<mx:TextInput x="357"
+				  y="361"
+				  id="txtHabilitacao"
+				  maxChars="8"
+				  width="85"
+				  tabIndex="20"
+				  restrict="0-9"/>
+	<mx:HRule x="10"
+			  y="290"
+			  width="480"
+			  height="3"/>
+	<mx:Label x="10"
+			  y="96"
+			  text="End.:"/>
+	<mx:TextInput x="53"
+				  y="95"
+				  width="300"
+				  id="txtEndereco"
+				  tabIndex="5"
+				  maxChars="200"/>
+	<mx:Label x="371"
+			  y="96"
+			  text="Nº"/>
+	<mx:TextInput x="396"
+				  y="95"
+				  width="96"
+				  tabIndex="6"
+				  id="txtNumero"
+				  maxChars="10"/>
+	<mx:Label x="10"
+			  y="124"
+			  text="Complemento:"/>
+	<mx:TextInput x="90"
+				  y="123"
+				  id="txtComplemento"
+				  tabIndex="7"
+				  maxChars="100"/>
+	<mx:Label x="261"
+			  y="124"
+			  text="Bairro:"/>
+	<mx:TextInput x="306"
+				  y="123"
+				  width="186"
+				  id="txtBairro"
+				  tabIndex="8"
+				  maxChars="20"/>
+	<mx:Label x="10"
+			  y="152"
+			  text="CEP:"/>
+	<mx:TextInput x="53"
+				  y="151"
+				  width="90"
+				  restrict="0-9"
+				  id="txtCep"
+				  tabIndex="9"
+				  editable="true"
+				  enabled="true"
+				  maxChars="8"
+				  keyUp="Funcoes.formatarCep(this.txtCep)"/>
+	<mx:Label x="155"
+			  y="152"
+			  text="Município:"/>
+	<mx:TextInput x="215"
+				  y="151"
+				  width="152"
+				  id="txtMunicipio"
+				  tabIndex="10"
+				  maxChars="100"/>
+	<mx:Label x="375"
+			  y="152"
+			  text="UF:"/>
+	<mx:ComboBox x="400"
+				 y="150"
+				 width="92"
+				 id="cbbUf"
+				 prompt="Selecione"
+				 dataProvider="{ufsEndereco}"
+				 labelField="sigla"
+				 tabIndex="11">
+	</mx:ComboBox>
+	<mx:Label x="10"
+			  y="263"
+			  text="Perfil:"/>
+	<mx:ComboBox x="106"
+				 y="261"
+				 id="cbbPerfil"
+				 tabIndex="16"
+				 prompt="Selecione"
+				 change="closeHandler()"
+				 dataProvider="{perfis}"
+				 labelField="nome">
+	</mx:ComboBox>
+	<mx:HRule x="10"
+			  y="250"
+			  width="480"
+			  height="3"/>
+	<mx:Label x="235"
+			  y="193"
+			  text="E-mail:"/>
+	<mx:TextInput x="279"
+				  y="192"
+				  width="213"
+				  id="txtEmail"
+				  tabIndex="13"
+				  maxChars="100"/>
+	<mx:Label x="10"
+			  y="67"
+			  text="Sexo:"/>
+	<mx:RadioButton x="51"
+					y="66"
+					label="Masculino"
+					id="rbgSexoMasculino"
+					groupName="rbgSexo"
+					selected="true"
+					tabIndex="3"
+					value="M"/>
+	<mx:RadioButton x="133"
+					y="66"
+					label="Feminino"
+					id="rbgSexoFeminino"
+					groupName="rbgSexo"
+					tabIndex="4"
+					value="F"/>
+	<mx:ControlBar height="45"
+				   y="268"
+				   horizontalAlign="right">
+		<mx:Button label="salvar"
+				   id="btnSalvar"
+				   click="salvar()"
+				   tabIndex="20"/>
+		<mx:Button label="limpar"
+				   id="btnLimpar"
+				   tabIndex="21"
+				   click="limparTela()"/>
+		<mx:Button label="fechar"
+				   id="btnFechar"
+				   click="Funcoes.fecharPopUp(this)"
+				   tabIndex="22"/>
+	</mx:ControlBar>
+
+</mx:TitleWindow>

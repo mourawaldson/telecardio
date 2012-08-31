@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?><!-- Use this file to deploy some handlers/chains and services      --><!-- Two ways to do this:                                           --><!--   java org.apache.axis.client.AdminClient deploy.wsdd          --><!--      after the axis server is running                          --><!-- or                                                             --><!--   java org.apache.axis.utils.Admin client|server deploy.wsdd   --><!--      from the same directory that the Axis engine runs         --><deployment xmlns="http://xml.apache.org/axis/wsdd/" xmlns:java="http://xml.apache.org/axis/wsdd/providers/java">
+
+  <!-- Services from WebServiceTeleCardioService WSDL service -->
+
+  <service name="WebServiceTeleCardio" provider="java:RPC" style="wrapped" use="literal">
+      <parameter name="wsdlTargetNamespace" value="http://webservice.telecardio.nutes"/>
+      <parameter name="wsdlServiceElement" value="WebServiceTeleCardioService"/>
+      <parameter name="schemaQualified" value="http://estruturaorganizacional.modelo.telecardio.nutes,http://webservice.telecardio.nutes,http://operacional.modelo.telecardio.nutes"/>
+      <parameter name="wsdlServicePort" value="WebServiceTeleCardio"/>
+      <parameter name="className" value="nutes.telecardio.webservice.WebServiceTeleCardio"/>
+      <parameter name="wsdlPortType" value="WebServiceTeleCardio"/>
+      <parameter name="typeMappingVersion" value="1.2"/>
+      <operation xmlns:operNS="http://webservice.telecardio.nutes" xmlns:retNS="http://webservice.telecardio.nutes" xmlns:rtns="http://www.w3.org/2001/XMLSchema" name="consultarMedicoMobilePorLoginSenha" qname="operNS:consultarMedicoMobilePorLoginSenha" returnQName="retNS:consultarMedicoMobilePorLoginSenhaReturn" returnType="rtns:string" soapAction="">
+        <parameter xmlns:pns="http://webservice.telecardio.nutes" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:login" type="tns:string"/>
+        <parameter xmlns:pns="http://webservice.telecardio.nutes" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:senha" type="tns:string"/>
+      </operation>
+      <operation xmlns:operNS="http://webservice.telecardio.nutes" xmlns:retNS="http://webservice.telecardio.nutes" xmlns:rtns="http://www.w3.org/2001/XMLSchema" name="consultarSolicitacoesAbertosMobile" qname="operNS:consultarSolicitacoesAbertosMobile" returnQName="retNS:consultarSolicitacoesAbertosMobileReturn" returnType="rtns:string" soapAction="">
+        <parameter xmlns:pns="http://webservice.telecardio.nutes" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:campo" type="tns:string"/>
+        <parameter xmlns:pns="http://webservice.telecardio.nutes" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:valor" type="tns:string"/>
+        <parameter xmlns:pns="http://webservice.telecardio.nutes" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:crm" type="tns:int"/>
+      </operation>
+      <operation xmlns:operNS="http://webservice.telecardio.nutes" xmlns:retNS="http://webservice.telecardio.nutes" xmlns:rtns="http://www.w3.org/2001/XMLSchema" name="consultarExameMobilePorChave" qname="operNS:consultarExameMobilePorChave" returnQName="retNS:consultarExameMobilePorChaveReturn" returnType="rtns:string" soapAction="">
+        <parameter xmlns:pns="http://webservice.telecardio.nutes" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:chaveExame" type="tns:int"/>
+      </operation>
+      <operation xmlns:operNS="http://webservice.telecardio.nutes" xmlns:retNS="http://webservice.telecardio.nutes" xmlns:rtns="http://webservice.telecardio.nutes" name="getTeste" qname="operNS:getTeste" returnQName="retNS:getTesteReturn" returnType="rtns:TesteFuncionalidade" soapAction="">
+        <parameter xmlns:pns="http://webservice.telecardio.nutes" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:nome" type="tns:string"/>
+        <parameter xmlns:pns="http://webservice.telecardio.nutes" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:senha" type="tns:string"/>
+      </operation>
+      <operation xmlns:operNS="http://webservice.telecardio.nutes" xmlns:retNS="http://webservice.telecardio.nutes" xmlns:rtns="http://www.w3.org/2001/XMLSchema" name="definirLaudando" qname="operNS:definirLaudando" returnQName="retNS:definirLaudandoReturn" returnType="rtns:string" soapAction="">
+        <parameter xmlns:pns="http://webservice.telecardio.nutes" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:chaveExame" type="tns:int"/>
+      </operation>
+      <operation xmlns:operNS="http://webservice.telecardio.nutes" xmlns:retNS="http://webservice.telecardio.nutes" xmlns:rtns="http://www.w3.org/2001/XMLSchema" name="consultarMedicosMobileMenosParametro" qname="operNS:consultarMedicosMobileMenosParametro" returnQName="retNS:consultarMedicosMobileMenosParametroReturn" returnType="rtns:string" soapAction="">
+        <parameter xmlns:pns="http://webservice.telecardio.nutes" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:chaveUsuario" type="tns:int"/>
+      </operation>
+      <operation xmlns:operNS="http://webservice.telecardio.nutes" xmlns:retNS="http://webservice.telecardio.nutes" xmlns:rtns="http://www.w3.org/2001/XMLSchema" name="cancelar" qname="operNS:cancelar" returnQName="retNS:cancelarReturn" returnType="rtns:boolean" soapAction="">
+        <parameter xmlns:pns="http://webservice.telecardio.nutes" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:chaveExame" type="tns:int"/>
+      </operation>
+      <operation xmlns:operNS="http://webservice.telecardio.nutes" xmlns:retNS="http://webservice.telecardio.nutes" xmlns:rtns="http://www.w3.org/2001/XMLSchema" name="laudar" qname="operNS:laudar" returnQName="retNS:laudarReturn" returnType="rtns:string" soapAction="">
+        <parameter xmlns:pns="http://webservice.telecardio.nutes" xmlns:tns="http://estruturaorganizacional.modelo.telecardio.nutes" qname="pns:exameMobile" type="tns:ExameMobile"/>
+      </operation>
+      <parameter name="allowedMethods" value="consultarMedicosMobileMenosParametro definirLaudando cancelar consultarMedicoMobilePorLoginSenha laudar getTeste consultarExameMobilePorChave consultarSolicitacoesAbertosMobile"/>
+
+      <typeMapping xmlns:ns="http://webservice.telecardio.nutes" qname="ns:TesteFuncionalidade" type="java:nutes.telecardio.webservice.TesteFuncionalidade" serializer="org.apache.axis.encoding.ser.BeanSerializerFactory" deserializer="org.apache.axis.encoding.ser.BeanDeserializerFactory" encodingStyle=""/>
+      <typeMapping xmlns:ns="http://estruturaorganizacional.modelo.telecardio.nutes" qname="ns:ExameMobile" type="java:nutes.telecardio.modelo.estruturaorganizacional.ExameMobile" serializer="org.apache.axis.encoding.ser.BeanSerializerFactory" deserializer="org.apache.axis.encoding.ser.BeanDeserializerFactory" encodingStyle=""/>
+      <typeMapping xmlns:ns="http://operacional.modelo.telecardio.nutes" qname="ns:PacienteMobile" type="java:nutes.telecardio.modelo.operacional.PacienteMobile" serializer="org.apache.axis.encoding.ser.BeanSerializerFactory" deserializer="org.apache.axis.encoding.ser.BeanDeserializerFactory" encodingStyle=""/>
+      <typeMapping xmlns:ns="http://estruturaorganizacional.modelo.telecardio.nutes" qname="ns:UsuarioMobile" type="java:nutes.telecardio.modelo.estruturaorganizacional.UsuarioMobile" serializer="org.apache.axis.encoding.ser.BeanSerializerFactory" deserializer="org.apache.axis.encoding.ser.BeanDeserializerFactory" encodingStyle=""/>
+  </service>
+</deployment>

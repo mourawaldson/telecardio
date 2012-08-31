@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+				xmlns:validators="validators.*"
+				layout="absolute"
+				width="528"
+				height="326"
+				title="Tele Cardio - Editar Paciente"
+				initialize="this.consultar();">
+
+	<mx:Style source="../lib/css/estilo.css"/>
+
+	<validators:validacaoString id="valNome"
+								source="{this.txtNome}"
+								property="text"
+								minLength="5"
+								maxLength="100"/>
+	<!--<validators:validacaoString id="valCpf" source="{this.txtCpf}" property="text" minLength="14" maxLength="14" />-->
+	<validators:validacaoString id="valNascimento"
+								source="{this.txtNascimento}"
+								property="text"
+								minLength="10"
+								maxLength="10"/>
+	<!--<validators:validacaoString id="valNomeMae" source="{this.txtNomeMae}" property="text" minLength="5" maxLength="100" />
+		 <validators:validacaoString id="valLogradouro" source="{this.txtLogradouro}" property="text" minLength="10" maxLength="200" />
+		 <validators:validacaoString id="valNumero" source="{this.txtNumero}" property="text" minLength="1" maxLength="10" />
+		 <validators:validacaoString id="valBairro" source="{this.txtBairro}" property="text" minLength="5" maxLength="20" />
+		 <validators:validacaoString id="valCep" source="{this.txtCep}" property="text" minLength="10" maxLength="10" />
+		 <validators:validacaoString id="valMunicipio" source="{this.txtMunicipio}" property="text"  minLength="5" maxLength="100" />-->
+
+	<mx:Script>
+		<![CDATA[
+			import lib.funcoes.Funcoes;
+			import lib.configuracao.*;
+
+			import lib.classes.Paciente;
+			import lib.classes.Endereco;
+			import lib.classes.Uf;
+			import lib.classes.TipoSanguineo;
+
+			import mx.events.CloseEvent;
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.validators.Validator;
+			import mx.rpc.events.ResultEvent;
+			import mx.events.CalendarLayoutChangeEvent;
+
+			public var telaPai:paciente;
+
+			[Bindable]
+			private var pac:Paciente=null;
+
+			public var idPac:int;
+
+			[Bindable]
+			public var temEndereco:Boolean=false;
+
+			[Bindable]
+			private var endereco:Endereco=null;
+
+			[Bindable]
+			private var uf:Uf=null;
+
+			[Bindable]
+			private var tipoSanguineo:TipoSanguineo=null;
+
+			[Bindable]
+			private var ufs:ArrayCollection=new ArrayCollection();
+
+			[Bindable]
+			public var tiposSanguineos:ArrayCollection=new ArrayCollection();
+
+			// Chama o controlador e efetua a consulta da configuração solicitada.
+			private function consultar():void
+			{
+				controlador.consultarTodasUfs();
+				controlador.consultarTodosTiposSanguineos();
+				controlador.consultarPorId(this.idPac);
+			}
+
+			// Resultado da consulta do paciente solicitada.
+			private function onResultConsultarPorId(event:ResultEvent):void
+			{
+				this.pac=new Paciente();
+				this.pac=event.result as Paciente;
+				if (this.pac != null)
+					this.preencherCampos();
+				else
+				{
+					Alert.show(MensagensNegocio.pacienteErroConsultar, MensagensNegocio.msgTipoErro);
+					Funcoes.fecharPopUp(this);
+				}
+			}
+
+			// Função que carregará a lista de Ufs e Tipos Sanguineos de Paciente.
+			private function preencherCampos():void
+			{
+				this.txtNome.text=this.pac.nome;
+				this.txtCpf.text=this.pac.cpf;
+				Funcoes.formatarCpf(this.txtCpf);
+				this.txtNascimento.text=this.pac.dataNascimento.toString();
+				this.txtNomeMae.text=this.pac.nomeMae;
+				if (this.pac.sexo == NomesCampos.sexoMasculino)
+				{
+					this.rbgSexoMasculino.selected=true;
+					this.rbgSexoFeminino.selected=false;
+				}
+				else
+				{
+					this.rbgSexoFeminino.selected=true;
+					this.rbgSexoMasculino.selected=false;
+				}
+
+				if (this.pac.endereco != null)
+				{
+					this.temEndereco=true;
+					this.txtLogradouro.text=this.pac.endereco.logradouro;
+					this.txtNumero.text=this.pac.endereco.numero;
+					this.txtComplemento.text=this.pac.endereco.complemento;
+					this.txtBairro.text=this.pac.endereco.bairro;
+					this.txtCep.text=this.pac.endereco.cep;
+					Funcoes.formatarCep(this.txtCep);
+					this.txtMunicipio.text=this.pac.endereco.municipio;
+
+					if (this.pac.endereco.uf.chave > 0)
+						this.cbbUf.selectedIndex=Funcoes.verificarIndexElemento(this.cbbUf, this.pac.endereco.uf);
+				}
+
+				if (this.pac.tipoSanguineo.chave > 0)
+					this.cbbTipoSanguineo.selectedIndex=Funcoes.verificarIndexElemento(this.cbbTipoSanguineo, this.pac.tipoSanguineo);
+			}
+
+			// Função que abre um popup para confirmação de atualização do paciente. 
+			private function confirmacaoAtualizar():void
+			{
+				Alert.yesLabel=NomesCampos.sim;
+				Alert.noLabel=NomesCampos.nao;
+				Alert.show(MensagensNegocio.pacienteConfirmarAtualizar, MensagensNegocio.msgTipoConfirmacao, Alert.YES | Alert.NO, this, atualizarPaciente);
+			}
+
+			// Função que recupera a resposta do popup de confirmação e salva ou não o paciente.
+			private function atualizarPaciente(event:CloseEvent):void
+			{
+				if (event.detail == Alert.YES)
+				{
+					// Precisou ser criada essa variável, pois ao setar qualquer propriedade
+					// no this.pac, os outros valores eram anulados!
+					var pacienteAtualizar:Paciente=new Paciente();
+
+					// E a chave do paciente e de pessoa são necessários para atualização!
+					pacienteAtualizar.chave=this.pac.chave;
+					pacienteAtualizar.chavePessoa=this.pac.chavePessoa;
+
+					pacienteAtualizar.nome=this.txtNome.text;
+					pacienteAtualizar.cpf=this.txtCpf.text;
+					pacienteAtualizar.formatarCpf();
+					pacienteAtualizar.dataNascimento=this.txtNascimento.text;
+					pacienteAtualizar.nomeMae=this.txtNomeMae.text;
+					pacienteAtualizar.sexo=this.rbgSexoMasculino.selected ? NomesCampos.sexoMasculino : NomesCampos.sexoFeminino;
+
+					// Caso logradouro seja preenchido, subentende-se que haverá endereço.
+					if (this.temEndereco || !Funcoes.isNullOrEmpty(this.txtLogradouro.text))
+					{
+						pacienteAtualizar.endereco=new Endereco();
+						pacienteAtualizar.endereco.uf=new Uf();
+						pacienteAtualizar.endereco.logradouro=this.txtLogradouro.text;
+						pacienteAtualizar.endereco.numero=this.txtNumero.text;
+						pacienteAtualizar.endereco.complemento=this.txtComplemento.text;
+						pacienteAtualizar.endereco.bairro=this.txtBairro.text;
+						pacienteAtualizar.endereco.cep=this.txtCep.text;
+						pacienteAtualizar.endereco.formatarCep();
+						pacienteAtualizar.endereco.municipio=this.txtMunicipio.text;
+						pacienteAtualizar.endereco.uf=this.cbbUf.selectedItem as Uf;
+					}
+
+					pacienteAtualizar.tipoSanguineo=this.cbbTipoSanguineo.selectedItem as TipoSanguineo;
+
+					controlador.atualizar(pacienteAtualizar);
+				}
+			}
+
+			// Função responsável por atualizar o Paciente no banco.
+			private function atualizar():void
+			{
+				var erros:Array=Validator.validateAll(new Array(valNome, valNascimento));
+				var errosEspecificos:Array=Validator.validateAll(new Array());
+
+				if (erros.length == 0)
+					confirmacaoAtualizar();
+				else
+					verificarCampos();
+			}
+
+			// Validação dos campos.
+			private function verificarCampos():void
+			{
+				var camposObrigatorios:String=new String();
+				var tamNome:int=this.txtNome.text.length;
+				var tamMinNome:int=int(valNome.minLength);
+				var tamMaxNome:int=int(valNome.maxLength);
+				var tamNascimento:int=this.txtNascimento.text.length;
+				var tamMinNascimento:int=int(valNascimento.minLength);
+				var tamMaxNascimento:int=int(valNascimento.maxLength);
+
+				if (Funcoes.isNullOrEmpty(this.txtNome.text) || tamNome < tamMinNome || tamNome > tamMaxNome)
+					camposObrigatorios+=NomesCampos.nome + "\n";
+
+				if (Funcoes.isNullOrEmpty(this.txtNascimento.text) || tamNascimento < tamMinNascimento || tamNascimento > tamMaxNascimento)
+					camposObrigatorios+=NomesCampos.dataNascimento + "\n";
+
+				if (camposObrigatorios.length != 0)
+					Alert.show(MensagensNegocio.campoObrigatorio + "\n" + camposObrigatorios, NomesCampos.telaEditarPaciente);
+			}
+
+			// Retorno do metodo consultarTodasUfs.
+			private function onResultConsultarTodasUfs(event:ResultEvent):void
+			{
+				this.ufs=event.result as ArrayCollection;
+			}
+
+			// Retorno do metodo consultarTodosTiposSanguineos.
+			private function onResultConsultarTodosTiposSanguineos(event:ResultEvent):void
+			{
+				this.tiposSanguineos=event.result as ArrayCollection;
+			}
+
+			// Resultado da atualização.
+			private function onResultAtualizar(event:ResultEvent):void
+			{
+				var validador:Validador=event.result as Validador;
+				if (validador.msgRetorno.length <= 0)
+				{
+					Alert.show(MensagensNegocio.pacienteAtualizado, MensagensNegocio.msgTipoConfirmacao);
+					telaPai.preencherDatagrid();
+					Funcoes.fecharPopUp(this);
+				}
+				else
+				{
+					var msgsRetorno:String=new String();
+					for (var i:int=0; i < validador.msgRetorno.length; i++)
+						msgsRetorno+=validador.msgRetorno[i].toString() + "\n"
+
+					Alert.show(msgsRetorno, MensagensNegocio.msgTipoErro);
+				}
+			}
+
+			// Limpa os campos da tela.
+			private function limpar():void
+			{
+				var inputs:Array=new Array(this.txtNome, this.txtCpf, this.txtNomeMae, this.txtLogradouro, this.txtNumero, this.txtComplemento, this.txtBairro, this.txtCep, this.txtMunicipio);
+				this.txtNascimento.text="";
+				this.rbgSexoMasculino.selected=true;
+				Funcoes.clearTextInputs(inputs);
+				focusManager.setFocus(this.txtNome);
+			}
+		]]>
+	</mx:Script>
+
+	<mx:RemoteObject id="controlador"
+					 showBusyCursor="true"
+					 destination="controladorPaciente">
+		<mx:method name="atualizar"
+				   result="this.onResultAtualizar(event)"
+				   fault="Funcoes.onFault(event)"/>
+		<mx:method name="consultarPorId"
+				   result="this.onResultConsultarPorId(event)"
+				   fault="Funcoes.onFault(event)"/>
+		<mx:method name="consultarTodasUfs"
+				   result="this.onResultConsultarTodasUfs(event)"
+				   fault="Funcoes.onFault(event)"/>
+		<mx:method name="consultarTodosTiposSanguineos"
+				   result="this.onResultConsultarTodosTiposSanguineos(event)"
+				   fault="Funcoes.onFault(event)"/>
+	</mx:RemoteObject>
+
+	<mx:Label x="10"
+			  y="10"
+			  text="Nome:"/>
+	<mx:TextInput x="53"
+				  y="9"
+				  id="txtNome"
+				  maxChars="100"
+				  width="437"
+				  tabIndex="0"/>
+	<mx:Label x="10"
+			  y="38"
+			  text="CPF:"/>
+	<mx:TextInput x="53"
+				  y="37"
+				  id="txtCpf"
+				  restrict="0-9"
+				  tabIndex="1"
+				  toolTip="Digite apenas números!"
+				  editable="true"
+				  enabled="true"
+				  keyUp="Funcoes.formatarCpf(this.txtCpf)"
+				  maxChars="11"/>
+	<mx:Label x="223"
+			  y="38"
+			  text="Data Nasc.:"/>
+	<mx:DateField x="292"
+				  y="37"
+				  id="txtNascimento"
+				  yearNavigationEnabled="true"
+				  displayedYear="1960"
+				  formatString="DD/MM/YYYY"
+				  tabIndex="2"
+				  showToday="true"/>
+	<mx:Label x="10"
+			  y="66"
+			  text="Nome da mãe:"/>
+	<mx:TextInput x="91"
+				  y="65"
+				  id="txtNomeMae"
+				  maxChars="80"
+				  width="399"
+				  tabIndex="3"/>
+	<mx:Label x="10"
+			  y="94"
+			  text="Sexo:"/>
+	<mx:RadioButtonGroup id="rbgSexo"/>
+	<mx:RadioButton x="51"
+					y="93"
+					label="Masculino"
+					id="rbgSexoMasculino"
+					groupName="rbgSexo"
+					selected="true"
+					tabIndex="4"
+					value="M"/>
+	<mx:RadioButton x="133"
+					y="93"
+					label="Feminino"
+					id="rbgSexoFeminino"
+					groupName="rbgSexo"
+					tabIndex="5"
+					value="F"/>
+	<mx:HRule x="10"
+			  y="121"
+			  width="480"
+			  height="3"/>
+	<mx:Label x="10"
+			  y="133"
+			  text="End.:"/>
+	<mx:TextInput x="53"
+				  y="132"
+				  width="300"
+				  id="txtLogradouro"
+				  tabIndex="6"
+				  maxChars="200"/>
+	<mx:Label x="371"
+			  y="133"
+			  text="Nº"/>
+	<mx:TextInput x="394"
+				  y="132"
+				  width="96"
+				  tabIndex="7"
+				  id="txtNumero"
+				  maxChars="10"/>
+	<mx:Label x="10"
+			  y="161"
+			  text="Complemento:"/>
+	<mx:TextInput x="90"
+				  y="160"
+				  id="txtComplemento"
+				  tabIndex="8"
+				  maxChars="100"/>
+	<mx:Label x="261"
+			  y="161"
+			  text="Bairro:"/>
+	<mx:TextInput x="304"
+				  y="160"
+				  width="186"
+				  id="txtBairro"
+				  tabIndex="9"
+				  maxChars="20"/>
+	<mx:Label x="10"
+			  y="188"
+			  text="CEP:"/>
+	<mx:TextInput x="45"
+				  y="187"
+				  width="90"
+				  id="txtCep"
+				  restrict="0-9"
+				  tabIndex="10"
+				  editable="true"
+				  enabled="true"
+				  maxChars="8"
+				  keyUp="Funcoes.formatarCep(this.txtCep)"/>
+	<mx:Label x="143"
+			  y="188"
+			  text="Município:"/>
+	<mx:TextInput x="203"
+				  y="187"
+				  width="152"
+				  id="txtMunicipio"
+				  tabIndex="11"
+				  maxChars="100"/>
+	<mx:Label x="363"
+			  y="188"
+			  text="UF:"/>
+	<mx:ComboBox x="392"
+				 y="186"
+				 width="98"
+				 id="cbbUf"
+				 prompt="Selecione"
+				 dataProvider="{this.ufs}"
+				 labelField="sigla"
+				 tabIndex="12">
+	</mx:ComboBox>
+	<mx:Label x="10"
+			  y="220"
+			  text="Tipo Sanguíneo:"/>
+	<mx:ComboBox x="115"
+				 y="217"
+				 width="103"
+				 id="cbbTipoSanguineo"
+				 prompt="Selecione"
+				 dataProvider="{this.tiposSanguineos}"
+				 labelField="nome"
+				 tabIndex="13">
+	</mx:ComboBox>
+	<mx:ControlBar height="45"
+				   y="268"
+				   horizontalAlign="right">
+		<mx:Button label="salvar"
+				   id="btnSalvar"
+				   click="this.atualizar();"
+				   tabIndex="14"/>
+		<mx:Button label="limpar"
+				   id="btnLimpar"
+				   click="limpar();"
+				   tabIndex="15"/>
+		<mx:Button label="fechar"
+				   id="btnFechar"
+				   click="Funcoes.fecharPopUp(this)"
+				   tabIndex="16"/>
+	</mx:ControlBar>
+</mx:TitleWindow>

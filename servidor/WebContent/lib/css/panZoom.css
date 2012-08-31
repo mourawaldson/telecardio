@@ -1,0 +1,49 @@
+Application {
+	backgroundGradientColors: #ffffff, #c2c2c2;
+}		
+
+Panel {
+	borderColor: #ffffff;
+  	headerHeight: 0;	
+	borderThicknessLeft: 4;
+	borderThicknessRight: 4;
+	borderThicknessTop: 4;
+	borderThicknessBottom: 4;		
+	color: #ffffff;
+}
+
+Button {		
+	color: #ffffff;
+	cornerRadius: 7;
+}
+
+.ZoomInButton {		
+	disabledSkin: Embed(source="../../icons/demoIcons.swf",symbol="MinusButton_Disabled");
+	downSkin: Embed(source="../../icons/demoIcons.swf",symbol="MinusButton_Down");
+	overSkin: Embed(source="../../icons/demoIcons.swf",symbol="MinusButton_Over");
+	upSkin: Embed(source="../../icons/demoIcons.swf",symbol="MinusButton_Up");		
+}	
+
+.ZoomOutButton {		
+	disabledSkin: Embed(source="../../icons/demoIcons.swf",symbol="PlusButton_Disabled");
+	downSkin: Embed(source="../../icons/demoIcons.swf",symbol="PlusButton_Down");
+	overSkin: Embed(source="../../icons/demoIcons.swf",symbol="PlusButton_Over");
+	upSkin: Embed(source="../../icons/demoIcons.swf",symbol="PlusButton_Up");
+}	
+
+Label {
+	color: #808080;
+}
+
+CheckBox {
+	color: #808080;			
+}
+
+VBox {
+	borderStyle: solid;
+	horizontalAlign: center; 
+	cornerRadius: 10; 
+	backgroundAlpha: 0.5; 
+	backgroundColor: #ffffff;
+	borderThickness: 0; 		
+}

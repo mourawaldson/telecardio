@@ -1,0 +1,340 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml"
+				layout="absolute"
+				barColor="#BCF3A1"
+				borderStyle="solid"
+				modalTransparencyColor="#DEF4D2"
+				buttonMode="false"
+				pageTitle="Tele Cardio"
+				creationComplete="this.init();">
+
+	<mx:Style source="lib/css/estilo.css"/>
+
+	<mx:Script>
+		<![CDATA[
+			import mx.controls.Alert;
+			import lib.configuracao.Sessao;
+
+			import lib.funcoes.Funcoes;
+			import lib.classes.Usuario;
+			import lib.configuracao.NomesCampos;
+
+			import flash.utils.Timer;
+			import flash.events.TimerEvent;
+
+			private var dateTime:Timer;
+
+			//Usuário da sessão
+			private var usuario:Usuario;
+
+			public function getUsuario():Usuario
+			{
+				return this.usuario;
+			}
+
+			public function setUsuario(usuario:Usuario):void
+			{
+				this.usuario=usuario;
+			}
+
+			//Função que recupera o Botão clicado, alterando a imagem e mudando o Accordion com os itens de menu.
+			private function recuperarMenu(menu:int):void
+			{
+				if (menu == 0)
+				{
+					cvsMenuCadastro.label=NomesCampos.menuCadastro;
+					acpMenuIndex.selectedIndex=0;
+					imgCadastro.source="lib/images/btnCadastroO.png";
+					imgCadastro.height=37;
+					imgCadastro.y=3;
+
+					if (imgSolicitacao.height == 37)
+					{
+						imgSolicitacao.source="lib/images/btnSolicitacao.png";
+						imgSolicitacao.height=30;
+						imgSolicitacao.y=9;
+					}
+
+					if (imgSobre.height == 37)
+					{
+						imgSobre.source="lib/images/btnSobre.png";
+						imgSobre.height=30;
+						imgSobre.y=10;
+					}
+				}
+
+				if (menu == 1)
+				{
+					cvsMenuSolicitacao.label=NomesCampos.menuSolicitacao;
+					acpMenuIndex.selectedIndex=1;
+					imgSolicitacao.source="lib/images/btnSolicitacaoO.png";
+					imgSolicitacao.height=37;
+					imgSolicitacao.y=y + 2;
+
+					if (imgCadastro.height == 37)
+					{
+						imgCadastro.source="lib/images/btnCadastro.png";
+						imgCadastro.height=30;
+						imgCadastro.y=8;
+					}
+
+					if (imgSobre.height == 37)
+					{
+						imgSobre.source="lib/images/btnSobre.png";
+						imgSobre.height=30;
+						imgSobre.y=10;
+					}
+				}
+
+				if (menu == 2)
+				{
+					cvsMenuSobre.label=NomesCampos.menuSobre;
+					acpMenuIndex.selectedIndex=2;
+					imgSobre.source="lib/images/btnSobreO.png";
+					imgSobre.height=37;
+					imgSobre.y=y + 2;
+
+					if (imgCadastro.height == 37)
+					{
+						imgCadastro.source="lib/images/btnCadastro.png";
+						imgCadastro.height=30;
+						imgCadastro.y=8;
+					}
+
+					if (imgSolicitacao.height == 37)
+					{
+						imgSolicitacao.source="lib/images/btnSolicitacao.png";
+						imgSolicitacao.height=30;
+						imgSolicitacao.y=9;
+					}
+				}
+			}
+
+
+			//Função que carrega o estado inicial da tela
+			private function init():void
+			{
+				this.posicionarMenu();
+				this.startTimer();
+				if (Sessao.userSessao == null)
+					Funcoes.telaLogin(this);
+			}
+
+			public function carregarSessao():void
+			{
+				this.lblNomeLogin.text=Sessao.userSessao.nome;
+
+				if (Sessao.userSessao.perfil.nome == NomesCampos.perfilMedico || Sessao.userSessao.perfil.nome == NomesCampos.perfilEnfermeiro || Sessao.userSessao.perfil.nome == NomesCampos.perfilAuxiliarEnfermagem)
+					this.cvsMenuCadastro.enabled=false;
+
+				//if (Sessao.userSessao.perfil.nome == NomesCampos.perfilEnfermeiro || Sessao.userSessao.perfil.nome == NomesCampos.perfilAuxiliarEnfermagem)
+					//this.btnSolicitacoesAberto.enabled=false;
+
+				if (Sessao.userSessao.perfil.nome == NomesCampos.perfilAdministrador)
+				{
+					this.cvsMenuCadastro.enabled=true;
+					//this.btnSolicitacoesAberto.enabled=true;
+				}
+			}
+
+			//Função que posiciona o Canvas com os botões no centro da tela, independente de resolução utilizada.
+			private function posicionarMenu():void
+			{
+				var largura:int=this.width;
+				var posicaoX:Number=((largura / 2) - 85);
+				this.cvsBotoes.x=posicaoX;
+			}
+
+			Date.prototype.getFormatedDate=function(format:String):String
+			{
+				var keys={y: "getFullYear", m: "getMonth", d: "getDate", h: "getHours", n: "getMinutes", s: "getSeconds", i: "getMilliseconds"};
+				var str:String="";
+				var ci:String;
+				var meth:String;
+				for (var i:int=0; i < format.length; i++)
+				{
+					ci=format.charAt(i);
+					if (keys[ci] != undefined)
+					{
+						meth=keys[ci];
+						var val:int;
+						if (meth == "getMonth")
+							val=(this[meth]() + 1);
+						else
+							val=(this[meth]());
+						str+=(val < 10) ? "0" + val : val;
+					}
+					else
+						str+=ci;
+				}
+				return str;
+			};
+
+			private function startTimer():void
+			{
+				dateTime=new Timer(1000);
+				dateTime.addEventListener(TimerEvent.TIMER, showTime);
+				dateTime.start();
+			}
+
+			private function showTime(event:Event):void
+			{
+				var dateTime:Date=new Date();
+				this.lbData.text=dateTime.getFormatedDate("d/m/y h:n:s");
+			}
+
+			private function logout():void
+			{
+				Sessao.userSessao=null;
+				this.lblNomeLogin.text="";
+				Funcoes.telaLogin(this);
+			}
+		]]>
+	</mx:Script>
+
+	<mx:ApplicationControlBar x="0"
+							  y="2"
+							  width="100%"
+							  height="55"
+							  cornerRadius="0"
+							  id="acbPrincipal">
+		<mx:Canvas width="100%"
+				   height="100%">
+			<mx:Image x="0"
+					  y="7"
+					  source="lib/images/logo_TeleCardio.png"
+					  width="150"
+					  height="39"/>
+			<mx:VRule x="162"
+					  y="7"
+					  width="10"
+					  height="40"/>
+			<mx:Canvas x="234"
+					   y="3"
+					   width="170"
+					   height="100%"
+					   id="cvsBotoes">
+				<mx:Image id="imgCadastro"
+						  source="lib/images/btnCadastroO.png"
+						  click="recuperarMenu(0)"
+						  y="3"
+						  horizontalAlign="center"
+						  verticalAlign="middle"
+						  x="10"
+						  width="30"
+						  height="37"
+						  useHandCursor="true"
+						  toolTip="Cadastros"/>
+				<mx:Image x="67"
+						  y="10"
+						  source="lib/images/btnSolicitacao.png"
+						  click="recuperarMenu(1)"
+						  width="30"
+						  height="30"
+						  toolTip="Solicitações"
+						  id="imgSolicitacao"/>
+				<mx:Image x="126"
+						  y="10"
+						  source="lib/images/btnSobre.png"
+						  click="recuperarMenu(2)"
+						  width="30"
+						  height="30"
+						  toolTip="Sobre o sistema"
+						  id="imgSobre"/>
+			</mx:Canvas>
+		</mx:Canvas>
+	</mx:ApplicationControlBar>
+
+	<mx:Accordion x="10"
+				  y="111"
+				  width="160"
+				  height="242"
+				  id="acpMenuIndex"
+				  selectedIndex="0"
+				  click='recuperarMenu(this.acpMenuIndex.selectedIndex);'>
+		<mx:Canvas width="100%"
+				   height="100%"
+				   id="cvsMenuCadastro"
+				   label="Cadastros">
+			<mx:LinkButton x='10'
+						   y='10'
+						   label='Usuários'
+						   width='138'
+						   id='btnCadUsuario'
+						   click='Funcoes.telaUsuario(this);'/>
+			<mx:LinkButton x='10'
+						   y='66'
+						   label='Configuração'
+						   width='138'
+						   id='btnCadConfiguracao'
+						   click='Funcoes.telaConfiguracoes(this);'/>
+			<mx:LinkButton x='10'
+						   y='36'
+						   label='Pacientes'
+						   width='138'
+						   id='btnCadPaciente'
+						   click='Funcoes.telaPacientes(this);'/>
+		</mx:Canvas>
+
+		<mx:Canvas width="100%"
+				   height="100%"
+				   id="cvsMenuSolicitacao"
+				   label="Solicitações">
+			<mx:LinkButton x="10"
+						   y="10"
+						   label="Solicitações concluídas"
+						   width="138"
+						   id="btnSolicitacoes"
+						   click="Funcoes.telaSolicitacoesConcluidas(this);"/>
+			<mx:LinkButton x="10"
+						   y="40"
+						   label="Solicitações em aberto"
+						   width="138"
+						   id="btnSolicitacoesAberto"
+						   click="Funcoes.telaSolicitacoesAbertas(this);"/>
+		</mx:Canvas>
+
+		<mx:Canvas width="100%"
+				   height="100%"
+				   id="cvsMenuSobre"
+				   label="Sobre o sistema">
+			<mx:LinkButton x="10"
+						   y="10"
+						   label="Sobre o sistema"
+						   width="138"
+						   id="btnSobre"
+						   click="Funcoes.telaSobre(this);"/>
+		</mx:Canvas>
+	</mx:Accordion>
+
+	<mx:Canvas x="10"
+			   y="68"
+			   width="160"
+			   height="38"
+			   borderStyle="solid"
+			   borderColor="#CFD1D3">
+		<mx:Label x="2"
+				  y="8"
+				  text="Bem vindo:"
+				  fontWeight="bold"/>
+		<mx:Label x="68"
+				  y="8"
+				  id="lblNomeLogin"/>
+	</mx:Canvas>
+
+	<mx:Label id="lbData"
+			  width="130"
+			  right="10"
+			  top="10"
+			  textAlign="left"/>
+	<mx:Image id="imgLogout"
+			  source="lib/images/logout.png"
+			  click="logout()"
+			  width="20"
+			  height="20"
+			  useHandCursor="true"
+			  toolTip="Sair do sistema"
+			  right="120"
+			  top="30"/>
+
+</mx:Application>

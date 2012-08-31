@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+				xmlns:validators="validators.*"
+				layout="absolute"
+				width="408"
+				height="186"
+				showCloseButton="false"
+				title="Tele Cardio - Lembrete de senha"
+				horizontalAlign="left">
+
+	<mx:Style source="../lib/css/estilo.css"/>
+
+	<validators:validacaoString id="valEmail"
+								source="{this.txEmailLembrete}"
+								property="text"
+								minLength="7"/>
+	<validators:validacaoEmail id="valEmail1"
+							   source="{this.txEmailLembrete}"
+							   property="text"/>
+
+	<mx:Script>
+		<![CDATA[
+			import mx.controls.Alert;
+			import mx.validators.Validator;
+			import lib.funcoes.Funcoes;
+			import lib.configuracao.MensagensNegocio;
+
+			private function lembrarSenha():void
+			{
+				var erros:Array=Validator.validateAll(new Array(valEmail, valEmail1));
+
+				if (erros.length == 0)
+				{
+					Alert.show("Nesse momento, o sistema deve buscar no banco pelo e-mail, caso exista, enviar para ele o LOGIN e SENHA.", "Lembrete");
+					Funcoes.fecharPopUp(this);
+				}
+				else
+				{
+					var camposObrigatorios:String=new String();
+
+					if (Funcoes.isNullOrEmpty(txEmailLembrete.text))
+						camposObrigatorios+="E-mail \n";
+
+					Alert.show(MensagensNegocio.campoObrigatorio + "\n" + camposObrigatorios, "Lembrete de Senha");
+				}
+			}
+		]]>
+	</mx:Script>
+
+	<mx:Text text="Informe seu e-mail cadastrado em nosso sistema, que em instantes você receberá a informação solicitada."
+			 height="51"
+			 width="363"
+			 x="10"/>
+	<mx:Label text="E-mail:"
+			  x="10"
+			  y="49"/>
+	<mx:TextInput x="63"
+				  y="47"
+				  width="315"
+				  id="txEmailLembrete"
+				  maxChars="50"/>
+	<mx:Button x="63"
+			   y="85"
+			   label="enviar"
+			   id="btEnviarLembrete"
+			   width="69"
+			   click="this.lembrarSenha();"/>
+	<mx:Button x="152"
+			   y="85"
+			   label="cancelar"
+			   id="btCancelar"
+			   click="Funcoes.fecharPopUp(this);"/>
+
+</mx:TitleWindow>

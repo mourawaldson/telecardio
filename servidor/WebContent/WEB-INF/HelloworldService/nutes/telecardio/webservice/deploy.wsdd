@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?><!-- Use this file to deploy some handlers/chains and services      --><!-- Two ways to do this:                                           --><!--   java org.apache.axis.client.AdminClient deploy.wsdd          --><!--      after the axis server is running                          --><!-- or                                                             --><!--   java org.apache.axis.utils.Admin client|server deploy.wsdd   --><!--      from the same directory that the Axis engine runs         --><deployment xmlns="http://xml.apache.org/axis/wsdd/" xmlns:java="http://xml.apache.org/axis/wsdd/providers/java">
+
+  <!-- Services from HelloworldService WSDL service -->
+
+  <service name="Helloworld" provider="java:RPC" style="wrapped" use="literal">
+      <parameter name="wsdlTargetNamespace" value="http://webservice.telecardio.nutes"/>
+      <parameter name="wsdlServiceElement" value="HelloworldService"/>
+      <parameter name="schemaQualified" value="http://webservice.telecardio.nutes"/>
+      <parameter name="wsdlServicePort" value="Helloworld"/>
+      <parameter name="className" value="nutes.telecardio.webservice.Helloworld"/>
+      <parameter name="wsdlPortType" value="Helloworld"/>
+      <parameter name="typeMappingVersion" value="1.2"/>
+      <operation xmlns:operNS="http://webservice.telecardio.nutes" xmlns:retNS="http://webservice.telecardio.nutes" xmlns:rtns="http://www.w3.org/2001/XMLSchema" name="bemVindo" qname="operNS:bemVindo" returnQName="retNS:bemVindoReturn" returnType="rtns:string" soapAction="">
+        <parameter xmlns:pns="http://webservice.telecardio.nutes" xmlns:tns="http://www.w3.org/2001/XMLSchema" qname="pns:nome" type="tns:string"/>
+      </operation>
+      <parameter name="allowedMethods" value="bemVindo"/>
+
+  </service>
+</deployment>

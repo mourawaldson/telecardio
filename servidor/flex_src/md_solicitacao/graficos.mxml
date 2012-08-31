@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+				layout="absolute"
+				xmlns:ns1="com.adobe.wheelerstreet.fig.panzoom.*"
+				width="732"
+				height="550"
+				title="Tele Cardio - Visualização dos Gráficos"
+				creationComplete="this.handleCreationComplete();">
+
+	<mx:Style source="../lib/css/estilo.css"/>
+	<mx:Style source="../lib/css/panZoom.css"/>
+
+	<mx:Script>
+		<![CDATA[
+			import lib.funcoes.Funcoes;
+
+			import flash.net.navigateToURL;
+
+			[Bindable]
+			public var _imageURL:String;
+
+			private var _contextMenu:ContextMenu;
+			private var _contextMenuItems:Array=["Zoom In Image", "Zoom Out Image", "Show All Image", "Toggle Smooth Bitmap"];
+
+			public function handleCreationComplete():void
+			{
+				_contextMenu=new ContextMenu();
+				_contextMenu.hideBuiltInItems();
+
+				for (var i:uint=0; i < _contextMenuItems.length; i++)
+				{
+					var menuItem:ContextMenuItem=new ContextMenuItem(_contextMenuItems[i]);
+					_contextMenu.customItems.push(menuItem);
+					menuItem.addEventListener(ContextMenuEvent.MENU_ITEM_SELECT, handleContextMenu);
+				}
+
+				contextMenu=_contextMenu;
+			}
+
+			private function handleContextMenu(e:ContextMenuEvent):void
+			{
+				switch (ContextMenuItem(e.currentTarget).caption)
+				{
+					case "Zoom In Image":
+						imageViewer.zoomByOrigin("in")
+						break;
+
+					case "Zoom Out Image":
+						imageViewer.zoomByOrigin("out")
+						break;
+
+					case "Show All Image":
+						imageViewer.centerView();
+						break;
+
+					case "Toggle Smooth Bitmap":
+						imageViewer.smoothBitmap=(imageViewer.smoothBitmap == true) ? false : true;
+						break;
+				}
+			}
+		]]>
+	</mx:Script>
+
+	<mx:Canvas left="5"
+			   right="5"
+			   top="5"
+			   bottom="5">
+
+		<!--ImageViewer -->
+		<ns1:ImageViewer id="imageViewer"
+						 imageURL="{ _imageURL }"
+						 bitmapScaleFactorMax="5"
+						 bitmapScaleFactorMin=".05"
+						 width="100%"
+						 height="100%"
+						 x="0"
+						 y="0"/>
+
+		<!--Navigation controlls -->
+		<mx:VBox left="10"
+				 top="10"
+				 width="20">
+
+			<mx:Spacer/>
+
+			<mx:Button styleName="ZoomOutButton"
+					   toolTip="Zoom In"
+					   click="{imageViewer.zoom('in');}"/>
+
+			<mx:HBox width="20">
+
+				<mx:VSlider minimum="{ imageViewer.bitmapScaleFactorMin }"
+							maximum="{ imageViewer.bitmapScaleFactorMax }"
+							value="{ imageViewer.bitmapScaleFactor }"
+							change="{ imageViewer.setZoom(VSlider(event.currentTarget).value) }"
+							snapInterval=".001"
+							liveDragging="true"/>
+
+			</mx:HBox>
+
+			<mx:Button styleName="ZoomInButton"
+					   toolTip="Zoom Out"
+					   click="{ imageViewer.zoom('out'); }"/>
+
+			<mx:Spacer/>
+
+		</mx:VBox>
+
+	</mx:Canvas>
+
+	<mx:ControlBar height="47"
+				   y="236"
+				   horizontalAlign="right">
+		<mx:Button label="fechar"
+				   id="btnFechar"
+				   click="Funcoes.fecharPopUp(this)"/>
+	</mx:ControlBar>
+
+</mx:TitleWindow>

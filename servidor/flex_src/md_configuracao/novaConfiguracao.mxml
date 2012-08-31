@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+				xmlns:validators="validators.*"
+				layout="absolute"
+				width="498"
+				height="425"
+				title="Tele Cardio - Nova Configuração">
+
+	<mx:Style source="../lib/css/estilo.css"/>
+
+	<validators:validacaoString id="valNome"
+								source="{this.txtNome}"
+								property="text"
+								minLength="5"
+								maxLength="50"/>
+	<validators:validacaoString id="valPastaExames"
+								source="{this.txtPastaExames}"
+								property="text"
+								minLength="5"
+								maxLength="255"/>
+	<validators:validacaoString id="valSenha"
+								source="{this.txtSenha}"
+								property="text"
+								minLength="5"
+								maxLength="32"/>
+	<validators:validacaoString id="valConfSenha"
+								source="{this.txtConfirmeSenha}"
+								property="text"
+								minLength="5"
+								maxLength="32"/>
+	<validators:validacaoString id="valHost"
+								source="{this.txtHost}"
+								property="text"
+								minLength="5"
+								maxLength="50"/>
+	<validators:validacaoEmail id="valEmail"
+							   source="{this.txtEmailChacagem}"
+							   property="text"/>
+
+	<mx:Script>
+		<![CDATA[
+			import lib.report.org.utils.IntegerUtils;
+			import lib.funcoes.Funcoes;
+			import lib.classes.Configuracao;
+			import lib.configuracao.*;
+
+			import mx.events.CloseEvent;
+			import mx.controls.Alert;
+			import mx.validators.Validator;
+			import mx.managers.PopUpManager;
+			import mx.rpc.events.ResultEvent;
+			import flash.net.FileReference;
+
+			public var telaPai:configuracao;
+
+			[Bindable]
+			private var config:Configuracao;
+
+			// Resultado da inclusão.
+			private function onResultIncluir(event:ResultEvent):void
+			{
+				var validador:Validador=event.result as Validador;
+				if (validador.msgRetorno.length <= 0)
+				{
+					Alert.show(MensagensNegocio.configIncluida, MensagensNegocio.msgTipoConfirmacao);
+					this.telaPai.preencherDataGrid();
+					Funcoes.fecharPopUp(this);
+				}
+				else
+				{
+					var msgsRetorno:String=new String();
+					for (var i:int=0; i < validador.msgRetorno.length; i++)
+						msgsRetorno+=validador.msgRetorno[i].toString() + "\n"
+
+					Alert.show(msgsRetorno, MensagensNegocio.msgTipoErro);
+				}
+			}
+
+			// Função responsável por incluir a Configuração no banco.
+			private function incluir():void
+			{
+				var erros:Array=Validator.validateAll(new Array(this.valNome, this.valPastaExames, this.valHost, this.valSenha, this.valConfSenha));
+
+				(erros.length == 0) ? confirmacaoIncluir() : verificarCampos();
+			}
+
+			//Função que abre um popup para confirmação de inserção da configuração. 
+			private function confirmacaoIncluir():void
+			{
+				Alert.yesLabel=NomesCampos.sim;
+				Alert.noLabel=NomesCampos.nao;
+				Alert.show(MensagensNegocio.configConfirmarSalvar, MensagensNegocio.msgTipoConfirmacao, Alert.YES | Alert.NO, this, incluirConfiguracao);
+			}
+
+			// Inclui a configuração.
+			private function incluirConfiguracao(event:CloseEvent):void
+			{
+				if (event.detail == Alert.YES)
+				{
+					this.config=new Configuracao();
+					this.config.nome=this.txtNome.text;
+					this.config.pastaExames=this.txtPastaExames.text;
+					this.config.emailChecagemEmail=this.txtEmailChacagem.text;
+					this.config.senhaChecagemEmail=this.txtSenha.text;
+					this.config.hostChecagemEmail=this.txtHost.text;
+					this.config.portaChecagemEmail=this.nsrPorta.value;
+					this.config.limiteHabilitacoesMedico=this.nsrHabilMedico.value;
+					this.config.limiteHabilitacoesEnfermeiro=this.nsrHabilEnfermeiro.value;
+					this.config.limiteExameAberto=this.nsrLimiteExameAberto.value;
+					this.config.limiteExameLaudando=this.nsrLimiteExameLaudando.value;
+					this.config.intervaloChecagemEmail=this.nsrIntervaloChecagemEmail.value;
+
+					controlador.incluir(config);
+				}
+			}
+
+			// Validação dos campos.
+			private function verificarCampos():void
+			{
+				var camposObrigatorios:String=new String();
+				var tamNome:int=this.txtNome.text.length;
+				var tamMinNome:int=int(this.valNome.minLength);
+				var tamMaxNome:int=int(this.valNome.maxLength);
+				var tamPastaExames:int=this.txtPastaExames.text.length;
+				var tamMinPastaExames:int=int(this.valPastaExames.minLength);
+				var tamMaxPastaExames:int=int(this.valPastaExames.maxLength);
+				var tamSenha:int=this.txtSenha.text.length;
+				var tamMinSenha:int=int(this.valSenha.minLength);
+				var tamMaxSenha:int=int(this.valSenha.maxLength);
+				var tamConfSenha:int=this.txtConfirmeSenha.text.length;
+				var tamMinConfSenha:int=int(this.valConfSenha.minLength);
+				var tamMaxConfSenha:int=int(this.valConfSenha.maxLength);
+				var tamHost:int=this.txtHost.text.length;
+				var tamMinHost:int=int(this.valHost.minLength);
+				var tamMaxHost:int=int(this.valHost.maxLength);
+
+				if (Funcoes.isNullOrEmpty(this.txtNome.text) || tamNome < tamMinNome || tamNome > tamMaxNome)
+					camposObrigatorios+=NomesCampos.nome + "\n";
+
+				if (Funcoes.isNullOrEmpty(this.txtPastaExames.text) || tamPastaExames < tamMinPastaExames || tamPastaExames > tamMaxPastaExames)
+					camposObrigatorios+=NomesCampos.pastaExames + "\n";
+
+				if (Funcoes.isNullOrEmpty(this.txtEmailChacagem.text))
+					camposObrigatorios+=NomesCampos.emailChecagem + "\n";
+
+				if (Funcoes.isNullOrEmpty(this.txtSenha.text) || tamSenha < tamMinSenha || tamSenha > tamMaxSenha)
+					camposObrigatorios+=NomesCampos.senha + "\n";
+
+				if (Funcoes.isNullOrEmpty(this.txtConfirmeSenha.text) || tamConfSenha < tamMinConfSenha || tamConfSenha > tamMaxConfSenha)
+					camposObrigatorios+=NomesCampos.confirmacaoSenha + "\n";
+
+				if (Funcoes.isNullOrEmpty(this.txtHost.text) || tamHost < tamMinHost || tamHost > tamMaxHost)
+					camposObrigatorios+=NomesCampos.host + "\n";
+
+				if (camposObrigatorios.length != 0)
+					Alert.show(MensagensNegocio.campoObrigatorio + "\n" + camposObrigatorios, NomesCampos.telaNovaConfiguracao);
+			}
+
+			// Limpa os campos e seta os valores padrões
+			private function limpar():void
+			{
+				var inputs:Array=new Array(this.txtNome, this.txtSenha, this.txtPastaExames, this.txtEmailChacagem, this.txtConfirmeSenha, this.txtHost);
+				Funcoes.clearTextInputs(inputs);
+				this.nsrPorta.value=1;
+				this.nsrHabilMedico.value=2;
+				this.nsrHabilEnfermeiro.value=1;
+				this.nsrLimiteExameAberto.value=48;
+				this.nsrLimiteExameLaudando.value=10;
+				this.nsrIntervaloChecagemEmail.value=5;
+				focusManager.setFocus(this.txtNome);
+			}
+		]]>
+	</mx:Script>
+
+	<mx:RemoteObject id="controlador"
+					 showBusyCursor="true"
+					 destination="controladorConfiguracao">
+		<mx:method name="incluir"
+				   result="this.onResultIncluir(event)"
+				   fault="Funcoes.onFault(event)"/>
+	</mx:RemoteObject>
+
+	<mx:Label x="10"
+			  y="10"
+			  text="Nome:"/>
+	<mx:TextInput x="123"
+				  y="9"
+				  id="txtNome"
+				  width="319"
+				  tabIndex="0"/>
+	<mx:Label x="10"
+			  y="38"
+			  text="Pasta dos Exames:"/>
+	<mx:TextInput x="123"
+				  y="37"
+				  width="319"
+				  id="txtPastaExames"
+				  tabIndex="1"
+				  restrict="a-z A-Z"/>
+	<mx:Image x="450"
+			  y="39"
+			  source="lib/images/contexthelp.png"
+			  toolTip="Exemplo: exames"/>
+	<mx:Label x="10"
+			  y="206"
+			  text="Limite de Habilitações do Médico:"/>
+	<mx:NumericStepper x="213"
+					   y="205"
+					   id="nsrHabilMedico"
+					   tabIndex="8"
+					   minimum="1"
+					   value="2"
+					   maximum="99"
+					   maxChars="2"/>
+	<mx:Label x="10"
+			  y="234"
+			  text="Limite de Habilitações do Enfermeiro:"/>
+	<mx:NumericStepper x="213"
+					   y="233"
+					   id="nsrHabilEnfermeiro"
+					   tabIndex="9"
+					   minimum="1"
+					   value="1"
+					   maximum="99"
+					   maxChars="2"/>
+	<mx:Label x="10"
+			  y="262"
+			  text="Tempo Limite Para Exame Aberto:"/>
+	<mx:NumericStepper x="213"
+					   y="261"
+					   value="48"
+					   minimum="1"
+					   maximum="99"
+					   id="nsrLimiteExameAberto"
+					   tabIndex="10"
+					   toolTip="Valor em horas"
+					   maxChars="2"/>
+	<mx:Label x="286"
+			  y="262"
+			  text="Valor em horas"
+			  color="#D41006"
+			  fontStyle="italic"
+			  fontWeight="normal"/>
+	<mx:Label x="10"
+			  y="290"
+			  text="Tempo Limite Para Exame Laudando:"/>
+	<mx:NumericStepper x="213"
+					   y="289"
+					   id="nsrLimiteExameLaudando"
+					   minimum="1"
+					   tabIndex="11"
+					   value="10"
+					   maximum="99"
+					   toolTip="Valor em minutos"
+					   maxChars="2"/>
+	<mx:Label x="286"
+			  y="290"
+			  text="Valor em minutos"
+			  color="#D41006"
+			  fontStyle="italic"
+			  fontWeight="normal"/>
+	<mx:Label x="10"
+			  y="318"
+			  text="Intervalo Para Checagem de E-mail:"/>
+	<mx:NumericStepper x="213"
+					   y="317"
+					   id="nsrIntervaloChecagemEmail"
+					   minimum="1"
+					   tabIndex="12"
+					   value="5"
+					   maximum="99"
+					   toolTip="Valor em minutos"
+					   maxChars="2"/>
+	<mx:Label x="286"
+			  y="318"
+			  text="Valor em minutos"
+			  color="#D41006"
+			  fontStyle="italic"
+			  fontWeight="normal"/>
+	<mx:Label x="10"
+			  y="94"
+			  text="Senha:"/>
+	<mx:TextInput x="123"
+				  y="93"
+				  id="txtSenha"
+				  displayAsPassword="true"
+				  tabIndex="4"/>
+	<mx:Label x="10"
+			  y="122"
+			  text="Confirme a senha:"/>
+	<mx:TextInput x="123"
+				  y="121"
+				  id="txtConfirmeSenha"
+				  displayAsPassword="true"
+				  tabIndex="5"
+				  focusOut="Funcoes.compararSenhas(this.txtSenha,this.txtConfirmeSenha);"/>
+	<mx:Label x="10"
+			  y="178"
+			  text="Porta:"/>
+	<mx:NumericStepper x="213"
+					   y="177"
+					   id="nsrPorta"
+					   minimum="1"
+					   maximum="99999"
+					   tabIndex="7"
+					   maxChars="5"/>
+	<mx:Label x="10"
+			  y="150"
+			  text="Host:"/>
+	<mx:TextInput x="123"
+				  y="149"
+				  width="319"
+				  id="txtHost"
+				  tabIndex="6"/>
+	<mx:Image x="450"
+			  y="150"
+			  source="lib/images/contexthelp.png"
+			  toolTip="Exemplo: imap.gmail.com. Observação: A checagem do e-mail deve ser via IMAP."/>
+	<mx:Label x="10"
+			  y="66"
+			  text="E-mail de Checagem:"/>
+	<mx:TextInput x="123"
+				  y="65"
+				  width="319"
+				  id="txtEmailChacagem"
+				  tabIndex="3"/>
+	<mx:Image x="450"
+			  y="65"
+			  source="lib/images/contexthelp.png"
+			  toolTip="Exemplo: exemplo@servidor.com.br"/>
+
+	<mx:ControlBar height="44"
+				   y="286"
+				   horizontalAlign="right">
+		<mx:Button label="salvar"
+				   id="btnSalvar"
+				   click="incluir();"
+				   tabIndex="13"/>
+		<mx:Button label="limpar"
+				   id="btnLimpar"
+				   click="limpar();"
+				   tabIndex="14"/>
+		<mx:Button label="fechar"
+				   id="btnFechar"
+				   click="telaPai.preencherDataGrid(), Funcoes.fecharPopUp(this);"
+				   tabIndex="15"/>
+	</mx:ControlBar>
+
+</mx:TitleWindow>

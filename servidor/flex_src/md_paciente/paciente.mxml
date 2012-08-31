@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+				layout="absolute"
+				width="674"
+				height="270"
+				title="Tele Cardio - Pacientes"
+				initialize="this.preencherDatagrid();">
+
+	<mx:Style source="../lib/css/estilo.css"/>
+
+	<mx:Script>
+		<![CDATA[
+			import lib.classes.TipoSanguineo;
+			import lib.funcoes.Funcoes;
+			import lib.configuracao.*;
+
+			import lib.classes.Paciente;
+
+			import md_paciente.*;
+
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.rpc.events.ResultEvent;
+			import mx.events.CloseEvent;
+
+			[Bindable]
+			private var dados:ArrayCollection;
+
+			private var pac:Paciente=null;
+
+			// Consulta todos os pacientes incluídos, caso seja uma pesquisa .
+			public function preencherDatagrid(isPesquisa:Boolean=false):void
+			{
+				if (isPesquisa)
+				{
+					var valor:String=this.txtPesquisarPaciente.text;
+
+					/*if (this.rbtNascimento.selected)
+					 controlador.consultarTodos(CamposBanco.pessoaDataNascimento, valor);*/
+
+					if (this.rbtNome.selected)
+						controlador.consultarTodos(CamposBanco.pessoaNome, valor);
+
+					if (this.rbtNomeMae.selected)
+						controlador.consultarTodos(CamposBanco.pacienteNomeMae, valor);
+				}
+				else
+					controlador.consultarTodos(null, null);
+			}
+
+			// Chama a tela para editar o oaciente selecionado no DataGrid.
+			public function editar():void
+			{
+				//Pega a configuração selecionada no datagrid.
+				this.pac=Funcoes.retornarObjetoSelecionado(this.dtgPaciente) as Paciente;
+
+				var popUpEditarPaciente=new editarPaciente();
+
+				//atribui o id do paciente para tela.
+				popUpEditarPaciente.idPac=this.pac.chave;
+				popUpEditarPaciente.telaPai=paciente(this);
+
+				Funcoes.instanciarTela(popUpEditarPaciente, this);
+			}
+
+			private function confirmacaoExcluir():void
+			{
+				Alert.yesLabel=NomesCampos.sim;
+				Alert.noLabel=NomesCampos.nao;
+				Alert.show(MensagensNegocio.pacienteConfirmarExcluir, MensagensNegocio.msgTipoConfirmacao, Alert.YES | Alert.NO, this, excluirPaciente);
+			}
+
+			private function excluirPaciente(event:CloseEvent):void
+			{
+				if (event.detail == Alert.YES)
+				{
+					this.pac=Funcoes.retornarObjetoSelecionado(this.dtgPaciente) as Paciente;
+					controlador.excluir(this.pac);
+				}
+			}
+
+			public function excluir():void
+			{
+				this.confirmacaoExcluir();
+			}
+
+			private function onResultConsultarTodos(event:ResultEvent):void
+			{
+				this.dados=event.result as ArrayCollection;
+
+				if (this.dados != null)
+				{
+					for (var i:int=0; i < this.dados.length; i++)
+					{
+						var ts:String=(this.dados[i] as Paciente).tipoSanguineo.nome;
+						(this.dados[i] as Paciente).nomeTipoSanguineo=(ts == CamposBanco.tipoSanguineoSts) ? MensagensNegocio.tipoSanguineoSts : ts;
+					}
+
+					this.dtgPaciente.dataProvider=dados;
+				}
+			}
+
+			private function onResultExcluir(event:ResultEvent):void
+			{
+				if (event.result as Boolean)
+				{
+					Alert.show(MensagensNegocio.pacienteExcluidoSucesso, MensagensNegocio.msgTipoConfirmacao);
+					this.preencherDatagrid();
+				}
+				else
+					Alert.show(MensagensNegocio.pacienteExcluidoInsucesso, MensagensNegocio.msgTipoConfirmacao);
+			}
+		]]>
+	</mx:Script>
+
+	<mx:RemoteObject id="controlador"
+					 showBusyCursor="true"
+					 destination="controladorPaciente">
+		<mx:method name="consultarTodos"
+				   result="this.onResultConsultarTodos(event)"
+				   fault="Funcoes.onFault(event)"/>
+		<mx:method name="excluir"
+				   result="this.onResultExcluir(event)"
+				   fault="Funcoes.onFault(event)"/>
+	</mx:RemoteObject>
+
+	<mx:DataGrid id="dtgPaciente"
+				 resizableColumns="true"
+				 sortableColumns="true"
+				 width="640"
+				 draggableColumns="false"
+				 x="10"
+				 y="10"
+				 scroll="true"
+				 height="145"
+				 maxHeight="145"
+				 editable="false"
+				 showHeaders="true">
+		<mx:columns>
+			<mx:DataGridColumn headerText="Nome"
+							   dataField="nome"
+							   width="200"/>
+			<mx:DataGridColumn headerText="Nascimento"
+							   dataField="dataNascimento"
+							   width="45"/>
+			<mx:DataGridColumn headerText="Tipo Sanguíneo"
+							   dataField="nomeTipoSanguineo"
+							   width="52"/>
+			<mx:DataGridColumn headerText="Opções"
+							   dataField="opcoes"
+							   width="30">
+				<mx:itemRenderer>
+					<mx:Component>
+						<mx:HBox horizontalAlign="center">
+							<mx:Script>
+								<![CDATA[
+									[Embed(source='../lib/images/editar.png')]
+									public static var icEdita:Class;
+
+									[Embed(source='../lib/images/excluir.png')]
+									public static var icExcluir:Class;
+								]]>
+							</mx:Script>
+							<mx:Image source="{icEdita}"
+									  click="outerDocument.editar()"
+									  toolTip="Click para editar."
+									  useHandCursor="true"/>
+							<mx:Image source="{icExcluir}"
+									  click="outerDocument.excluir()"
+									  toolTip="Click para excluir."
+									  useHandCursor="true"/>
+						</mx:HBox>
+					</mx:Component>
+				</mx:itemRenderer>
+			</mx:DataGridColumn>
+		</mx:columns>
+	</mx:DataGrid>
+
+	<mx:Label x="10"
+			  y="162"
+			  text="Pesquisar:"/>
+	<mx:TextInput x="74"
+				  y="162"
+				  change="this.preencherDatagrid(true)"
+				  enter="this.preencherDatagrid(true)"
+				  width="194"
+				  id="txtPesquisarPaciente"/>
+	<mx:RadioButton x="290"
+					y="160"
+					label="Nome"
+					groupName="rbtPesquisarPaciente"
+					id="rbtNome"
+					selected="true"/>
+	<!--<mx:RadioButton x="456" y="160" label="Nascimento" groupName="rbtPesquisarPaciente"  id="rbtNascimento"/>-->
+	<mx:RadioButton x="360"
+					y="160"
+					label="Nome da mãe"
+					groupName="rbtPesquisarPaciente"
+					id="rbtNomeMae"/>
+
+	<mx:ControlBar height="42"
+				   horizontalAlign="right">
+		<mx:Button label="novo"
+				   id="btnNovo"
+				   width="60"
+				   click="Funcoes.telaNovoPaciente(this)"/>
+		<mx:Button label="fechar"
+				   id="btnFechar"
+				   click="Funcoes.fecharPopUp(this)"/>
+	</mx:ControlBar>
+
+</mx:TitleWindow>
