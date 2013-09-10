@@ -1,7 +1,7 @@
 ## Info
 Academic project in 6th period 2010 / Technologist Course in Analysis and Systems Development
 
-Final Project.
+TeleCardio is a system for diagnosis of digital electrocardiograms.
 
 Developed in Java EE, BlazeDS, Flex, C#, SQL Server 2008 and SQL Server Mobile.
 
