@@ -3,7 +3,7 @@ Academic project in 6th period 2010 / Technologist Course in Analysis and System
 
 Final Project.
 
-Developed in Java and Flex with SQL Server 2008.
+Developed in Java EE, BlazeDS, Flex, C#, SQL Server 2008 and SQL Server Mobile.
 
 [More info](http://mourawaldson.com.br/agility/index.php?opcao=2020)
 
